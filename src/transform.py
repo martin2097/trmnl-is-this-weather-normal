@@ -105,20 +105,26 @@ def _parse_coords(input):
     settings = trmnl.get("plugin_settings") or {}
     fields = settings.get("custom_fields_values") or {}
 
-    lat = fields.get("latitude")
-    lon = fields.get("longitude")
-    if lat in (None, ""):
-        lat = input.get("latitude")
-    if lon in (None, ""):
-        lon = input.get("longitude")
+    candidates = []
+    lat_lon = fields.get("lat_lon")
+    if lat_lon not in (None, ""):
+        parts = [part.strip() for part in str(lat_lon).split(",")]
+        if len(parts) == 2:
+            candidates.append((parts[0], parts[1]))
 
-    lat_f = _f(lat)
-    lon_f = _f(lon)
-    if lat_f is None or lon_f is None:
-        return None, None, fields
-    if not (-90.0 <= lat_f <= 90.0) or not (-180.0 <= lon_f <= 180.0):
-        return None, None, fields
-    return lat_f, lon_f, fields
+    # Keep existing installs working until they save the new lat_lon field.
+    candidates.append((fields.get("latitude"), fields.get("longitude")))
+    # Open-Meteo echoes the coordinates used by the polling request.
+    candidates.append((input.get("latitude"), input.get("longitude")))
+
+    for lat, lon in candidates:
+        lat_f = _f(lat)
+        lon_f = _f(lon)
+        if lat_f is None or lon_f is None:
+            continue
+        if -90.0 <= lat_f <= 90.0 and -180.0 <= lon_f <= 180.0:
+            return lat_f, lon_f, fields
+    return None, None, fields
 
 
 def _loc_label(fields, lat, lon):
