@@ -31,39 +31,38 @@ oauth_expiry_field_name: ''
 oauth_expiry_strategy: ''
 oauth_fixed_expiry_ms: ''
 custom_fields:
-- keyname: latitude
-  field_type: string
-  name: Latitude
-  description: GPS latitude in decimal degrees
-  help_text: Right-click your location in <a href="https://maps.google.com" target="_blank">Google Maps</a> and copy the first number.
-  placeholder: '50.0867'
-- keyname: longitude
-  field_type: string
-  name: Longitude
-  description: GPS longitude in decimal degrees
-  help_text: The second number from Google Maps.
-  placeholder: '14.4153'
+- keyname: doesnt_matter
+  name: About This Plugin
+  category: environment,nature
+  field_type: author_bio
+  description: |
+    Today feels off - too cold for July, or it just won't stop raining. But is it actually unusual, or just a perfectly normal bad week? Stop guessing: this plugin gives you a straight answer on both - is today normal, near a record, or somewhere in between?
+    <br/><br/>
+
+    Compares today against this same date across 85+ years of history for your exact location, using Open-Meteo's weather archive.
+    <br/><br/>
+
+    Search for a city, address, or postal code and it does the rest.
+  github_url: https://github.com/martin2097
+  learn_more_url: https://www.rapavy.cz/
+  email_address: rapavy.mato@gmail.com
+- keyname: lat_lon
+  field_type: lat_lon
+  name: Location
+  description: Search for a city, address, or postal code, or enter comma-separated latitude and longitude.
 - keyname: location_label
   field_type: string
-  name: Location name
-  description: Optional label shown on the screen, e.g. your town
+  name: Display name
+  description: Optional location name shown on the screen, e.g. your town
   placeholder: Prague
   optional: true
 - keyname: units
   field_type: select
   name: Units
   options:
-  - 'Celsius (mm): celsius'
-  - 'Fahrenheit (inches): fahrenheit'
+  - Celsius (mm): celsius
+  - Fahrenheit (inches): fahrenheit
   default: celsius
-- keyname: doesnt_matter
-  name: About This Plugin
-  category: environment,nature
-  field_type: author_bio
-  description: "Today feels off - too cold for July, or it just won't stop raining. But is it actually unusual, or just a perfectly normal bad week? Stop guessing: this plugin gives you a straight answer on both - is today normal, near a record, or somewhere in between? \n<br/><br/>\n\nCompares today against this same date across 85+ years of history for your exact location, using Open-Meteo's weather archive.\n<br/><br/>\n\nJust drop in your coordinates - right-click your location on Google Maps and copy the two numbers - and it does the rest.\n"
-  github_url: https://github.com/martin2097
-  learn_more_url: https://www.rapavy.cz/
-  email_address: rapavy.mato@gmail.com
 name: Is this weather normal?
 refresh_interval: 120
 oauth_connection_config:
