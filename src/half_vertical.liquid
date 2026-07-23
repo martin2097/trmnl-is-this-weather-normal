@@ -1,0 +1,195 @@
+{% if ok == false %}
+  <div class="layout layout--col">
+    {% render "skipped_state", err: error %}
+  </div>
+  {% render "titlebar", icon: icon_svg, title: plugin_title, inst: skip_inst %}
+  {% else %}
+  <div class="layout layout--col gap--distribute stretch-y my--1 mx--2">
+    <div class="flex flex--col flex--left gap--none no-shrink w--full">
+      <span class="title title--base lg:text--xxlarge lg:portrait:text--xlarge font--bold">
+        {{ headline | upcase }}
+      </span>
+      <span class="description description--small lg:description--base">
+        {{ subline }}
+      </span>
+    </div>
+    <div class="divider stretch-x no-shrink"></div>
+    <div class="grid lg:portrait:hidden">
+      <div class="col col--span-4 lg:col--span-5">
+        <span class="label label--small lg:label--base font--bold">TODAY</span>
+        <span class="value value--base lg:value--xlarge font--bold text--left">
+          {{ hi }}
+             °
+        </span>
+        <span class="label label--small lg:label--base">
+          {{ today_flag | upcase }}
+        </span>
+        <div class="divider my--1 w--10"></div>
+        <span class="text text--base lg:text--large">
+            Low 
+          <span class="value value--xsmall lg:value--small font--bold">
+            {{ lo }}
+               °
+          </span>
+        </span>
+        {% if today_night_line != "" %}
+          <span class="description">
+            {{ today_night_line }}
+          </span>
+        {% endif %}
+        <span class="description">
+          {{ today_rain_line }}
+        </span>
+      </div>
+      <div class="divider--v"></div>
+      <div class="col col--span-5">
+        <span class="label label--small lg:label--base font--bold">YESTERDAY</span>
+        {% if yday_hi %}
+          <span class="value value--xsmall lg:value--small font--bold">
+            {{ yday_hi }}
+               °
+          </span>
+        {% endif %}
+        <span class="description description--small">
+          {{ yday_note }}
+        </span>
+        <div class="divider my--2"></div>
+        <span class="label label--small lg:label--base font--bold">LAST 30 DAYS</span>
+        {% if t30_delta %}
+          <span class="value value--xsmall lg:value--small font--bold">
+            {{ t30_delta }}
+                 °
+          </span>
+          <span class="description description--small">vs normal</span>
+          {% else %}
+          <span class="description description--small">
+            {{ t30_line }}
+          </span>
+        {% endif %}
+        <span class="description description--small">
+          {{ rain_line }}
+        </span>
+      </div>
+    </div>
+    <div class="hidden lg:portrait:flex flex--col flex--left stretch-x gap--none no-shrink text--left">
+      <span class="label label--small lg:label--base font--bold">TODAY</span>
+      <span class="value value--large lg:value--xlarge font--bold text--left">
+        {{ hi }}
+             °
+      </span>
+      <span class="label label--small lg:label--base">
+        {{ today_flag | upcase }}
+      </span>
+      <div class="divider my--1 w--10"></div>
+      <span class="text text--base lg:text--large">
+            Low 
+        <span class="value value--xsmall lg:value--small font--bold">
+          {{ lo }}
+               °
+        </span>
+      </span>
+      {% if today_night_line != "" %}
+        <span class="description">
+          {{ today_night_line }}
+        </span>
+      {% endif %}
+      <span class="description">
+        {{ today_rain_line }}
+      </span>
+    </div>
+    <div class="hidden lg:portrait:visible divider stretch-x no-shrink"></div>
+    <div class="hidden lg:portrait:flex flex--row flex--left flex--top stretch-x gap--large lg:gap--large">
+      <div class="flex flex--col flex--left gap--small">
+        <span class="label label--small lg:label--base font--bold">YESTERDAY</span>
+        {% if yday_hi %}
+          <span class="value value--xsmall lg:value--small font--bold">
+            {{ yday_hi }}
+               °
+          </span>
+        {% endif %}
+        <span class="description description--small">
+          {{ yday_note }}
+        </span>
+      </div>
+      <div class="divider--v"></div>
+      <div class="flex flex--col flex--left flex--top gap--small">
+        <span class="label label--small lg:label--base font--bold">LAST 30 DAYS</span>
+        <div class="flex flex--row flex--left flex--bottom gap--xsmall">
+          {% if t30_delta %}
+            <span class="value value--xsmall lg:value--small font--bold">
+              {{ t30_delta }}
+                 °
+            </span>
+            <span class="description description--small">vs normal</span>
+            {% else %}
+            <span class="description description--small">
+              {{ t30_line }}
+            </span>
+          {% endif %}
+        </div>
+        <span class="description description--small">
+          {{ rain_line }}
+        </span>
+      </div>
+    </div>
+    <div class="divider stretch-x no-shrink"></div>
+    <div class="hidden lg:portrait:flex flex--col flex--left stretch-x gap--small no-shrink text--left">
+      <span class="label label--small lg:label--base font--bold">
+        {{ date_label | upcase }}
+             HIGHS IN HISTORY
+      </span>
+      <div class="flex flex--row flex--between stretch-x gap--large lg:gap--large">
+        <div class="flex flex--col flex--left flex--top stretch-y gap--none">
+          <span class="label label--small lg:label--base">Normal</span>
+          <span class="value value--xxsmall lg:value--xsmall">
+            {{ normal_lo }}
+                –
+            {{ normal_hi }}
+                 °
+          </span>
+        </div>
+        <div class="divider--v"></div>
+        <div class="flex flex--col flex--left gap--none">
+          <span class="label label--small lg:label--base">Warmest</span>
+          <span class="value value--xxsmall lg:value--xsmall">
+            {{ record_hi }}
+             °
+          </span>
+          <span class="label">
+             (
+            {{ record_hi_year }}
+            )
+          </span>
+        </div>
+        <div class="divider--v"></div>
+        <div class="flex flex--col flex--left gap--none">
+          <span class="label label--small lg:label--base">Coolest</span>
+          <span class="value value--xxsmall lg:value--xsmall">
+            {{ record_lo }}
+             ° 
+          </span>
+          <span class="label">
+            (
+            {{ record_lo_year }}
+            )
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="hidden divider lg:portrait:visible stretch-x no-shrink"></div>
+    <div class="flex flex--col flex--left">
+      <span class="label label--small">
+        {{ date_label | upcase }}
+             HIGHS DISTRIBUTION · Since 
+        {{ since_year }}
+      </span>
+      <div class="flex lg:portrait:hidden">
+        <div class="js-instrument" data-variant="full" data-chrome="180" data-chrome-p="280"></div>
+      </div>
+      <div class="hidden lg:portrait:flex">
+        <div class="js-instrument" data-variant="full" data-chrome="180" data-chrome-p="460"></div>
+      </div>
+    </div>
+  </div>
+  {% render "titlebar", icon: icon_svg, title: plugin_title, inst: inst_text %}
+{% endif %}

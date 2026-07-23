@@ -1,0 +1,753 @@
+{%- assign plugin_title = trmnl.plugin_settings.instance_name | default: "Is This Weather Normal?" -%}
+{%- capture inst_text -%}{{ loc }}{%- endcapture -%}
+{%- capture skip_inst -%}Screen skipped &middot; {{ updated_at }}{%- endcapture -%}
+{%- capture icon_svg -%}
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="35" height="35">
+<path d="M70.82 213.75C72.16 204.26 71.03 193.85 71.04 184.25C71.06 163.75 71.05 143.25 71.05 122.75C71.05 113.07 68.79 100.23 71.21 90.87C75.25 75.26 88.96 57.78 108.16 63.17C134.04 70.44 133.02 89.1 133.01 112.25C133.01 135.08 133.01 157.92 133.01 180.75C133.01 190.43 130.91 202.82 133.06 212.23C134.16 217.02 142.92 220.95 145.58 225.18C151.56 234.73 156.1 244.31 156.84 255.75C157.94 273.05 149.14 289.26 136.61 300.84C130.91 306.12 123.06 309.12 115.78 311.07C82.35 319.99 56.83 298.99 48.15 268.17C43.91 253.11 54.62 220.04 70.82 213.75ZM336.77 93.09C355.7 88.01 363.15 118.12 343.15 123.82C324.96 129.01 316.61 98.51 336.77 93.09ZM163.87 96.22C170.89 94.6 203.17 92.94 197.81 106.61C197.04 108.58 195.22 110.23 193.16 110.84C188.39 112.23 164.42 111.94 160.41 109.79C153.79 106.24 158.27 97.51 163.87 96.22ZM110.25 226.54C108.34 199.74 110.13 172.13 110.16 145.25C110.17 138.74 113.3 120.3 102.25 121.02C90.76 121.76 94.01 138.54 94.01 146.25C94.01 164.58 94.01 182.92 94.01 201.25C94.01 209.51 95.07 218.6 93.84 226.75C84.21 233.7 77.48 233.01 72.18 246.38C62.61 270.51 84.1 293.45 108.75 289.98C128.19 287.24 138.33 263.14 131.83 246.38C127.9 236.27 119.55 231.04 110.25 226.54ZM162.82 127.15C166.74 126.06 172.19 127.01 176.25 127.02C183.44 127.02 201.41 124.48 197.91 137.22C196.07 143.9 165.73 143.12 160.51 140.72C154.49 137.94 157.49 128.64 162.82 127.15ZM336.82 138.14C355.29 132.91 362.96 163.47 345.15 168.84C324.71 175 316.88 143.78 336.82 138.14ZM161.79 158.11C166.55 156.74 191.73 157.05 195.6 159.2C198.17 160.62 198.62 165.66 197.87 168.18C196.94 171.28 193.43 172.01 190.75 172.02C184.15 172.02 166.83 174.07 161.44 171.77C156.02 169.46 155.78 159.84 161.79 158.11ZM289.84 184.16C310.41 178.07 317.89 209.43 298.2 214.88C279.36 220.11 271.66 189.54 289.84 184.16ZM335.78 184.1C356.32 178.45 362.88 209.61 343.22 214.9C324.36 219.98 317.6 189.11 335.78 184.1ZM380.85 184.17C401.41 178.07 408.77 209.36 389.19 214.87C370.34 220.16 362.69 189.56 380.85 184.17ZM161.77 189.09C165.63 188.03 191.23 187.82 194.55 189.25C197.85 190.67 198.75 195.09 197.93 198.24C197.37 200.35 195.58 202.02 193.6 202.8C189.72 204.32 163.8 203.66 160.38 201.81C155.67 199.25 156.48 190.54 161.77 189.09ZM264.81 245.25C261.43 250.79 263.5 256.27 255.49 259.72C245.97 263.81 232.42 256.62 233.19 245.27C234.18 230.78 248.7 225.72 259.79 233.45C263.4 235.97 263.8 241.54 264.81 245.25ZM292.85 229.19C309.88 224.54 318.74 257.49 296.75 260.93C276.92 264.04 272.19 234.82 292.85 229.19ZM338.82 229.15C355.41 224.88 364.14 257.15 342.74 260.9C322.54 264.44 317.71 234.59 338.82 229.15ZM383.85 229.18C400.6 224.58 410.05 257.44 387.75 260.94C367.89 264.05 363.31 234.82 383.85 229.18ZM429.82 229.15C446.57 224.77 455.04 257.43 433.74 260.93C413.67 264.23 408.66 234.69 429.82 229.15ZM97.78 243.1C118.16 237.5 124.76 268.38 105.18 273.85C86.33 279.1 79.65 248.09 97.78 243.1ZM233.2 290.75C236.59 285.1 234.46 279.81 242.52 276.29C251.92 272.19 265.51 279.53 264.82 290.73C263.92 305.23 249.2 310.2 238.22 302.54C234.57 300.01 234.21 294.5 233.2 290.75ZM291.85 275.18C302.7 272.18 312.77 285.04 309.84 295.16C307.94 301.73 302.3 305.27 296.13 306.79C280.37 310.66 270.01 281.22 291.85 275.18ZM337.79 275.12C356.47 270.06 364.2 304.02 340.74 306.88C322.81 309.06 318.59 280.32 337.79 275.12ZM382.83 275.16C393.66 272.11 403.79 285.09 400.84 295.16C398.91 301.76 393.32 305.25 387.12 306.78C371.36 310.68 361.06 281.3 382.83 275.16ZM428.79 275.12C447.7 270.03 455.31 304.01 431.74 306.86C413.79 309.02 409.63 280.28 428.79 275.12ZM290.77 321.08C311.15 315.69 318.08 346.06 297.16 351.82C279.86 356.58 271.23 326.25 290.77 321.08ZM335.79 321.11C356.47 315.4 363.12 346.26 343.14 351.8C325.05 356.82 317.67 326.12 335.79 321.11ZM381.76 321.08C402.06 315.74 409.33 346.12 388.18 351.85C370.76 356.56 362.34 326.19 381.76 321.08ZM336.8 366.12C355.73 360.86 364.26 391.33 343.23 396.91C324.84 401.78 317.14 371.58 336.8 366.12ZM337.8 411.12C355.95 406.14 362.98 436.88 345.2 441.88C324.35 447.73 316.56 416.95 337.8 411.12Z" fill="#080808" fill-rule="evenodd" stroke="#080808" stroke-width="0.25" stroke-linejoin="round"/>
+</svg>
+{%- endcapture -%}
+
+{% template titlebar %}
+<div class="title_bar">
+  {{ icon }}
+  <span class="title">{{ title }}</span>
+  <span class="instance">{{ inst }}</span>
+</div>
+{% endtemplate %}
+
+{% template error_state %}
+<div class="flex flex--col flex--center stretch-x stretch-y gap--small">
+  <span class="title title--small">No reading right now</span>
+  <span class="label label--gray-35 1bit:text--black">{{ err | default: "Check your coordinates in plugin settings" }}</span>
+</div>
+{% endtemplate %}
+
+{% template skipped_state %}
+<script>window.TRMNL_SKIP_SCREEN_GENERATION = true;</script>
+<div class="flex flex--col flex--center stretch-x stretch-y gap--small">
+  <span class="title title--small">Keeping last reading</span>
+  <span class="label label--gray-35 1bit:text--black">Screen generation skipped &mdash; {{ err | default: "couldn't reach the weather service" }}</span>
+</div>
+{% endtemplate %}
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+
+  // ---- Tunable chart parameters — edit these to reshape the swarm/gridlines ----
+  // Sizing model: HEIGHT drives row pitch (fixed by the data — height ÷ temp
+  // span). Radius is then chosen as large as the box allows (vertical fit +
+  // width fit, trying 1..wrapMaxLines staggered sub-lines). Whitespace
+  // (visible gap between circle EDGES, not center-to-center pitch) fills in
+  // whatever room is left, capped at dotWhitespaceMax — it never stretches
+  // to fill the box. If the swarm ends up narrower than the box, it's
+  // centered and the gridlines still span the full width (see render()).
+  var CFG = {
+    dotWhitespaceMax: 3,   // hard cap on VISIBLE whitespace between adjacent circle edges (pitch - 2r). Radius wins first; whitespace only fills in up to this cap.
+    dotRadiusMin: 2.4,     // floor so dots never vanish in crowded buckets
+    dotRadiusMax: 9,       // safety cap on dot radius (generous — vertical/width fit almost always binds first)
+    todayMarkerScale: 2.0, // "today" marker radius in DOT-RADIUS units (scales with the dots, no fixed px floor)
+    todayHoleGap: 1.9,     // radius of the circular hole the swarm parts around the marker, ALSO in dot-radius units (added on top of the marker). Bigger = deeper indent AND more rows (above/below) flow around it.
+    todayLabelInset: 0,    // px to pull the "TODAY xx°" tag left of the container edge; 0 = flush with the same gutter the left-side labels use
+    labelGutter: 6,        // px between a label's text and the gridline/edge it sits against
+    wrapMaxLines: 3,       // max sub-lines a crowded bucket may wrap into (1 = old single-row behavior everywhere)
+    wrapGainMin: 1.12,     // a higher line count is only adopted if it grows dot radius by at least this factor over the best smaller count (hysteresis, prefers fewer lines)
+    wrapAirPx: 2.2         // guaranteed minimum white space (px) between ANY two dots — the whitespace floor in-row, between rows, and on the wrapped stagger diagonal — so dots never fuse into a blob
+  };
+
+  // Tone tiers are computed relative to the data's own max year (not a
+  // hardcoded calendar year) so the chart stays correct as years pass:
+  // last 20 years darkest, 1980-on mid gray, pre-1980 lightest.
+  function toneFor(year, maxYear) {
+    if (year >= maxYear - 19) return "#000000";
+    if (year >= 1980) return "#666666";
+    return "#a0a0a0";
+  }
+
+  // Which tone tier a year lands in (0 darkest .. 2 lightest) — mirrors the
+  // thresholds in toneFor so the 1-bit dither picks the matching density.
+  function tierOf(year, maxYear) {
+    if (year >= maxYear - 19) return 0;
+    if (year >= 1980) return 1;
+    return 2;
+  }
+
+  // ---- 1-bit (TRMNL OG) support ----
+  // On a real 1-bit panel a gray SVG fill is hard-thresholded to pure black
+  // (verified on device — the "no grays" report), so the gridlines, the label
+  // text AND the mid/light circles all need help. Gridlines/labels -> solid
+  // black. Circles -> filled with an ORDERED (Bayer) dither we ship inline as
+  // an 8x8 1-bit PNG data-URI: already black/white so it survives thresholding
+  // and renders as true gray at device resolution (image-rendering:pixelated
+  // keeps it crisp). The darkest tier stays solid black. On richer panels MONO
+  // is false and everything uses the real gray tones.
+  var MONO = false, MONO_MID = "", MONO_LIGHT = "", SVG_UID = 0;
+  // 8x8 Bayer tiles: ~59% black (mid tier) and ~38% black (oldest tier).
+  var DITHER_MID = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQAAAADsdIMmAAAAFklEQVR4nGMQZFjF4MqwigFEhzCsAgAYEQNkOR63KgAAAABJRU5ErkJggg==";
+  var DITHER_LIGHT = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAIAQAAAADsdIMmAAAAE0lEQVR4nGMIZdjNEMrwjgFKAwAidgSnpd/lEQAAAABJRU5ErkJggg==";
+
+  // Register one dither tile as a userSpaceOnUse pattern (8-unit tile = the
+  // 8px PNG at 1:1, so it lands on the device pixel grid).
+  function makeDither(defs, id, href) {
+    var p = el(defs, "pattern", { id: id, patternUnits: "userSpaceOnUse", width: 8, height: 8 });
+    var im = document.createElementNS(NS, "image");
+    im.setAttribute("width", "8"); im.setAttribute("height", "8");
+    im.setAttribute("image-rendering", "pixelated");
+    im.setAttributeNS("http://www.w3.org/1999/xlink", "href", href);
+    im.setAttribute("href", href);
+    p.appendChild(im);
+  }
+
+  // Detect bit depth. VERIFIED on a real OG render (via a debug build): the
+  // framework tags an ANCESTOR with a bit-depth class whose name contains
+  // "1bit" (e.g. a `screen--…1bit…` class) — that's the reliable signal.
+  // Probing compiled utilities does NOT work: `1bit:hidden` isn't generated
+  // (computed display stays "block") and `1bit:bg--black` isn't applied at
+  // render time (background comes back transparent). So match the ancestor
+  // class first; keep a `bg--black` probe only as a rename-proof fallback.
+  // If neither hits (non-1-bit panel) we fall back to gray — no regression.
+  var _monoCache;
+  function is1bit() {
+    if (_monoCache !== undefined) return _monoCache;
+    _monoCache = false;
+    try {
+      var s = document.querySelector(".screen");
+      var cls = (document.documentElement.className + " " +
+                 (s ? s.className : "") + " " +
+                 (document.body ? document.body.className : "")).toLowerCase();
+      if (cls.indexOf("1bit") >= 0 || cls.indexOf("1-bit") >= 0) _monoCache = true;
+    } catch (e) {}
+    if (!_monoCache) {
+      try {
+        var body = document.body || document.documentElement;
+        var p = document.createElement("div");
+        p.className = "1bit:bg--black";
+        p.style.position = "absolute"; p.style.left = "-9999px";
+        body.appendChild(p);
+        if (window.getComputedStyle(p).backgroundColor === "rgb(0, 0, 0)") _monoCache = true;
+        body.removeChild(p);
+      } catch (e) {}
+    }
+    return _monoCache;
+  }
+
+  // Draw a single data dot: real gray tone in color mode; in 1-bit, the
+  // darkest tier is solid black and the two lighter tiers are filled with the
+  // matching inline Bayer-dither pattern (no outline — the dither IS the disc).
+  function paintDot(svg, cx, cy, r, year, maxYear) {
+    if (!MONO) {
+      el(svg, "circle", { cx: cx, cy: cy, r: r, fill: toneFor(year, maxYear) });
+      return;
+    }
+    var t = tierOf(year, maxYear);
+    var fill = (t === 0) ? "#000000" : (t === 1) ? MONO_MID : MONO_LIGHT;
+    el(svg, "circle", { cx: cx, cy: cy, r: r, fill: fill });
+  }
+
+  // Editor-safe extractor: the TRMNL visual editor wraps every Liquid output
+  // in <ve-liquid-var data-liquid-tag="RENDERED_VALUE">...</ve-liquid-var>.
+  // Inside <script type="application/json"> that wrapper is literal text
+  // (script content isn't HTML-parsed), so a naive JSON.parse(textContent)
+  // fails ONLY in the editor preview -- device/screenshot output is clean.
+  // The true rendered value lives in the data-liquid-tag ATTRIBUTE, unescaped.
+  function extractJson(el) {
+    if (!el) return null;
+    var raw = el.textContent || "";
+    try { return JSON.parse(raw); } catch (e) {}
+    var m = raw.match(/data-liquid-tag="(\[[\s\S]*\])"/);          // arrays
+    if (m) { try { return JSON.parse(m[1]); } catch (e) {} }
+    m = raw.match(/data-liquid-tag="([^"]+)"/);                     // scalars
+    if (m) { try { return JSON.parse(m[1]); } catch (e) {} }
+    var s = raw.replace(/<[^>]*>/g, "");                            // strip tags fallback
+    var a = s.indexOf("["), b = s.lastIndexOf("]");
+    if (a >= 0 && b > a) { try { return JSON.parse(s.slice(a, b + 1)); } catch (e) {} }
+    var f = parseFloat(s);
+    return isNaN(f) ? null : f;
+  }
+
+  function el(p, tag, attrs) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) { e.setAttribute(k, attrs[k]); }
+    p.appendChild(e);
+    return e;
+  }
+  function txt(p, x, y, s, size, fill, anchor, weight) {
+    var e = el(p, "text", { x: x, y: y, "font-size": size, fill: fill, "text-anchor": anchor || "start" });
+    if (weight) { e.setAttribute("font-weight", weight); }
+    e.textContent = s;
+    return e;
+  }
+
+  function computeScale(years, todayHi, extras) {
+    var lo = 999, hi = -999, i, t;
+    for (i = 0; i < years.length; i++) {
+      t = years[i][1];
+      if (t < lo) lo = t;
+      if (t > hi) hi = t;
+    }
+    if (typeof todayHi === "number") {
+      if (todayHi < lo) lo = todayHi;
+      if (todayHi > hi) hi = todayHi;
+    }
+    if (extras) {
+      for (i = 0; i < extras.length; i++) {
+        if (typeof extras[i] !== "number") continue;
+        if (extras[i] < lo) lo = extras[i];
+        if (extras[i] > hi) hi = extras[i];
+      }
+    }
+    if (lo > hi) { lo = 0; hi = 10; }
+    lo = Math.floor(lo); hi = Math.ceil(hi);
+    if (hi === lo) { hi = lo + 1; }
+    return [lo, hi];
+  }
+
+  function buildBuckets(years, step) {
+    var b = {}, i, key;
+    for (i = 0; i < years.length; i++) {
+      key = Math.round(years[i][1] / step) * step;
+      if (!b[key]) b[key] = [];
+      b[key].push(years[i]);
+    }
+    return b;
+  }
+
+  // Onion ordering: sort the bucket's years NEWEST FIRST, then assign them
+  // to slots ordered center-out -- newest (darkest tones) lands in the
+  // middle, older years (lighter tones) ring outward.
+  function dotRow(svg, cx, y, yearsInBucket, r, gap, maxYear, holeR, xShift, lattice) {
+    var n = yearsInBucket.length;
+    if (!n) return;
+    xShift = xShift || 0;
+    var sorted = yearsInBucket.slice().sort(function (a, b) { return b[0] - a[0]; });
+    var i;
+    // Parted row: open a central hole of half-width holeR for the today
+    // marker, dots alternating sides (newest nearest the hole). Only rows
+    // whose hole is big enough to WIDEN the row are parted (holeR > gap/2);
+    // rows the marker barely reaches fall through to the normal layout.
+    if (holeR > gap * 0.5) {
+      if (lattice) {
+        // Wrapped (brick) mode: a parted line must stay ON the global brick
+        // lattice — the diagonal clearance that lets wrapped dots run bigger
+        // assumes every neighbouring line is offset by exactly gap/2. So
+        // instead of exact ±holeR positions (arbitrary phase!), fill this
+        // line's own lattice slots (phase = stagger shift, +gap/2 when an
+        // even count centres on a half-slot) nearest the hole first,
+        // skipping slots inside it. The hole edge lands within one gap of
+        // holeR — visually identical, geometrically safe.
+        var phase = xShift + (n % 2 === 0 ? gap / 2 : 0);
+        var mR = Math.ceil((holeR - phase) / gap);
+        var mL = Math.floor((-holeR - phase) / gap);
+        for (i = 0; i < n; i++) {
+          var xq;
+          if (i % 2 === 0) { xq = phase + mR * gap; mR++; }
+          else { xq = phase + mL * gap; mL--; }
+          paintDot(svg, cx + xq, y, r, sorted[i][0], maxYear);
+        }
+        return;
+      }
+      // Single-line mode: exact SYMMETRIC parting at ±holeR, ±(holeR+gap)...
+      // — safe because unwrapped rows are far enough apart vertically that
+      // horizontal phase never matters. The hole is centred on cx (the marker).
+      var right = 0, left = 0;
+      for (i = 0; i < n; i++) {
+        var xoff;
+        if (i % 2 === 0) { xoff = holeR + right * gap; right++; }
+        else { xoff = -(holeR + left * gap); left++; }
+        paintDot(svg, cx + xoff, y, r, sorted[i][0], maxYear);
+      }
+      return;
+    }
+    // Normal row — onion ordering (newest darkest in the centre).
+    var c = (n - 1) / 2;
+    var slotPositions = [];
+    for (i = 0; i < n; i++) slotPositions.push(i);
+    slotPositions.sort(function (a, b) { return Math.abs(a - c) - Math.abs(b - c); });
+    var placed = new Array(n);
+    for (i = 0; i < n; i++) { placed[slotPositions[i]] = sorted[i]; }
+    for (i = 0; i < n; i++) {
+      paintDot(svg, cx + xShift + (i - c) * gap, y, r, placed[i][0], maxYear);
+    }
+  }
+
+  // Today's temperature marker: a bold "target" dot (white halo carves it out
+  // of the swarm, a hollow ring around a solid core), with a leader line to a
+  // "TODAY xx°" tag on the right. The swarm flows around it (see dotRow's
+  // exclusion push). Drawn last, on top of the data dots.
+  function todayMarker(svg, cx, y, mR, dotR, temp, labelX) {
+    var haloR = mR + dotR * 0.7;
+    el(svg, "circle", { cx: cx, cy: y, r: haloR, fill: "#ffffff" });
+    el(svg, "circle", { cx: cx, cy: y, r: mR, fill: "#ffffff", stroke: "#111111", "stroke-width": Math.max(2.5, mR * 0.26) });
+    el(svg, "circle", { cx: cx, cy: y, r: mR * 0.5, fill: "#111111" });
+
+    var lblX = labelX;
+    var leadStart = cx + haloR + 1;
+    if (lblX - 3 > leadStart) {
+      // gray dashed leader, same style as the gridlines (no white casing)
+      el(svg, "line", { x1: leadStart, y1: y, x2: lblX - 3, y2: y, stroke: "#000000", "stroke-width": 2, "stroke-dasharray": "2 2" });
+    }
+    txt(svg, lblX, y - 3, "TODAY", 9, MONO ? "#000000" : "#555555", "start", "bold");
+    txt(svg, lblX, y + 12, temp + "°", 14, MONO ? "#000000" : "#111111", "start", "bold");
+  }
+
+  // Exactly 4 semantic gridlines: the normal-band edges (25th/75th pctile)
+  // and the all-time record high/low. Each gets a temp label; the two
+  // record lines also get their year underneath. Labels are nudged apart
+  // vertically when two would sit closer than ~12px.
+  function gridlines(svg, yOf, x1, x2, labelX, labelAnchor, normalLo, normalHi, recordHi, recordHiYear, recordLo, recordLoYear) {
+    var lines = [];
+    if (typeof normalLo === "number") lines.push({ t: normalLo, year: null });
+    if (typeof normalHi === "number") lines.push({ t: normalHi, year: null });
+    if (typeof recordHi === "number") lines.push({ t: recordHi, year: recordHiYear });
+    if (typeof recordLo === "number") lines.push({ t: recordLo, year: recordLoYear });
+
+    var i;
+    for (i = 0; i < lines.length; i++) {
+      lines[i].y = yOf(lines[i].t);
+      el(svg, "line", {
+        x1: x1, y1: lines[i].y, x2: x2, y2: lines[i].y,
+        stroke: MONO ? "#000000" : "#808080", "stroke-width": 1, "stroke-dasharray": "3 2"
+      });
+    }
+
+    // Sort by y position, then nudge apart any labels sitting <12px apart.
+    var order = lines.slice().sort(function (a, b) { return a.y - b.y; });
+    for (i = 1; i < order.length; i++) {
+      if (order[i].y - order[i - 1].y < 12) {
+        var mid = (order[i].y + order[i - 1].y) / 2;
+        order[i - 1].labelY = mid - 6;
+        order[i].labelY = mid + 6;
+      }
+    }
+    for (i = 0; i < order.length; i++) {
+      if (order[i].labelY === undefined) order[i].labelY = order[i].y;
+    }
+
+    // A record year hangs ~15px BELOW its temp label; if the next gridline
+    // sits closer than that stack needs, the year would collide with it. On
+    // deliberately short/narrow views drop BOTH record years (keeps the labels
+    // clean and symmetric instead of a weird overlap).
+    var YEAR_STACK = 25;
+    var showYears = true;
+    for (i = 0; i < lines.length && showYears; i++) {
+      if (lines[i].year === null || lines[i].year === undefined) continue;
+      for (var j = 0; j < lines.length; j++) {
+        if (j === i) continue;
+        var dy = lines[j].labelY - lines[i].labelY;   // >0 means j is below i
+        if (dy > 0 && dy < YEAR_STACK) { showYears = false; break; }
+      }
+    }
+
+    if (labelX > 0) {
+      for (i = 0; i < lines.length; i++) {
+        var ly = lines[i].labelY;
+        var tempStr = lines[i].t + "°";
+        var tEl = txt(svg, labelX, ly + 4, tempStr, 14, MONO ? "#000000" : "#555555", labelAnchor);
+        if (showYears && lines[i].year !== null && lines[i].year !== undefined) {
+          // record year: parenthesized and RIGHT-aligned to the temp's right
+          // edge (same labelX + labelAnchor as the temp), so the wider "(2023)"
+          // grows into the margin instead of overstepping toward the chart.
+          txt(svg, labelX, ly + 15, "(" + String(lines[i].year) + ")", 11, MONO ? "#000000" : "#808080", labelAnchor);
+        }
+      }
+    }
+  }
+
+  // Measures real glyph width via an offscreen canvas so left/right label
+  // reserves are adaptive (no fixed gridlinePad/gridlineRightPad px insets —
+  // those are gone). +12% safety margin covers any font-metric mismatch
+  // between canvas measurement and the actual (inherited) SVG text font;
+  // erring toward a slightly bigger reserve is cheap, clipping is not.
+  // Falls back to a rough per-glyph estimate if canvas is unavailable.
+  var _measureCtx;
+  function textW(str, px, weight) {
+    try {
+      if (_measureCtx === undefined) {
+        _measureCtx = document.createElement("canvas").getContext("2d");
+      }
+      if (_measureCtx) {
+        _measureCtx.font = (weight ? weight + " " : "") + px + "px sans-serif";
+        return _measureCtx.measureText(String(str)).width * 1.12;
+      }
+    } catch (e) {}
+    return String(str).length * px * 0.65;
+  }
+
+  // Largest dot radius r such that, with gap = 2r + ws (ws = the whitespace
+  // used), the diagonal distance to a dot on the next staggered sub-line
+  // still keeps CFG.wrapAirPx of clearance:
+  //   2r + wrapAirPx <= sqrt((r + ws/2)^2 + subPitch^2)
+  // Solved in closed form (it's a quadratic in r) rather than iteratively.
+  function wrapVertCap(subPitch, ws) {
+    var k = ws / 2, a = CFG.wrapAirPx, s = subPitch;
+    var A = 3, B = 4 * a - 2 * k, Cq = a * a - k * k - s * s;
+    var disc = B * B - 4 * A * Cq;
+    if (disc < 0) return 0;
+    var r = (-B + Math.sqrt(disc)) / (2 * A);
+    return r > 0 ? r : 0;
+  }
+
+  function render(c) {
+    var variant = c.getAttribute("data-variant") || "full";
+    var yearsEl = document.querySelector(".js-years");
+    var todayEl = document.querySelector(".js-today");
+    var years = extractJson(yearsEl);
+    var todayHi = extractJson(todayEl);
+
+    // Reference-line values arrive as separate scalar script tags (an
+    // object wrapped by the visual editor's <ve-liquid-var> breaks JSON
+    // parsing inside <script application/json> -- scalars/arrays are fine).
+    var normalLoEl = document.querySelector(".js-normal-lo");
+    var normalHiEl = document.querySelector(".js-normal-hi");
+    var recordHiEl = document.querySelector(".js-record-hi");
+    var recordHiYearEl = document.querySelector(".js-record-hi-year");
+    var recordLoEl = document.querySelector(".js-record-lo");
+    var recordLoYearEl = document.querySelector(".js-record-lo-year");
+    var normalLo = extractJson(normalLoEl);
+    var normalHi = extractJson(normalHiEl);
+    var recordHi = extractJson(recordHiEl);
+    var recordHiYear = extractJson(recordHiYearEl);
+    var recordLo = extractJson(recordLoEl);
+    var recordLoYear = extractJson(recordLoYearEl);
+
+    if (!years || !years.length) {
+      console.log("chart: no years data (variant=" + variant + ")");
+      return;
+    }
+
+    var maxYear = years[0][0];
+    for (var yi = 1; yi < years.length; yi++) {
+      if (years[yi][0] > maxYear) maxYear = years[yi][0];
+    }
+
+    // Sizing. Width: live container, bounded by the layout box. Height:
+    // deterministic — view height (CSS-fixed, stable at any timing; bigger
+    // on TRMNL X) minus the title_bar (49) minus this size's static chrome
+    // (hero + cards + gaps, passed via data-chrome). Runtime element
+    // positions are NOT trusted: the framework's clamp pass and the
+    // screenshot capture race against any measurement.
+    var DIMS = { full: [430, 330], wide: [375, 140], tall: [380, 180] };
+    var d = DIMS[variant] || DIMS.full;
+    var maxW = d[0];
+    var layoutEl = document.querySelector(".layout");
+    if (layoutEl) {
+      var mw = Math.floor(layoutEl.getBoundingClientRect().right - c.getBoundingClientRect().left);
+      if (mw >= 120) maxW = mw;
+    }
+    var W = c.clientWidth;
+    if (!W || W < 60) W = d[0];
+    if (W > maxW) W = maxW;
+
+    var viewEl = document.querySelector(".view");
+    var vr = viewEl ? viewEl.getBoundingClientRect() : null;
+    var viewH = vr ? Math.floor(vr.height) : 0;
+    // portrait canvases stack text above the chart, so the chart's chrome
+    // budget differs — sizes that reflow provide data-chrome-p
+    var isPortrait = vr ? vr.width < vr.height : false;
+    var chromeAttr = (isPortrait && c.getAttribute("data-chrome-p")) ? "data-chrome-p" : "data-chrome";
+    var chrome = parseInt(c.getAttribute(chromeAttr) || "0", 10) || 0;
+    var H = 0;
+    if (viewH > 100 && chrome > 0) {
+      // lg: type on X is taller; pad the chrome estimate on big canvases
+      var chromeEff = viewH > 600 ? Math.round(chrome * 1.6) : chrome;
+      H = viewH - 49 - chromeEff;
+    }
+    if (!H || H < 40) H = c.clientHeight;
+    if (!H || H < 40) H = d[1];
+
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("height", H);
+    c.appendChild(svg);
+
+    // Switch into mono mode on 1-bit panels: register this SVG's private
+    // dither patterns (unique ids so multiple charts on a page don't collide)
+    // for the mid/light circle tiers. On richer panels this is skipped.
+    MONO = is1bit();
+    if (MONO) {
+      var uid = ++SVG_UID;
+      var defs = el(svg, "defs", {});
+      MONO_MID = "url(#dm" + uid + ")";
+      MONO_LIGHT = "url(#dl" + uid + ")";
+      makeDither(defs, "dm" + uid, DITHER_MID);
+      makeDither(defs, "dl" + uid, DITHER_LIGHT);
+    }
+
+    var sc = computeScale(years, todayHi, [normalLo, normalHi, recordHi, recordLo]);
+    var lo = sc[0], hi = sc[1];
+    var span = hi - lo;
+
+    var topPad = 18;
+    var botPad = 18;
+    var plotH = H - topPad - botPad;
+    function yOf(t) { return (H - botPad) - (t - lo) * plotH / span; }
+
+    // Denser buckets when rows would sit far apart (plenty of vertical room)
+    var step = (span < 12 || plotH / span > 22) ? 0.5 : 1.0;
+    var buckets = buildBuckets(years, step);
+    var maxN = 1, k;
+    for (k in buckets) { if (buckets[k].length > maxN) maxN = buckets[k].length; }
+
+    // Row pitch is fixed by the data: box height / temperature span.
+    var rowPix = plotH / span * step;
+
+    var hasToday = (typeof todayHi === "number");
+    var todayY = hasToday ? yOf(todayHi) : 0;
+    var todayN = 0;
+    if (hasToday) { var tKey = Math.round(todayHi / step) * step; if (buckets[tKey]) todayN = buckets[tKey].length; }
+
+    // ---- Adaptive label reserves (no fixed px insets) ----
+    // LEFT: gridline temp labels, right-aligned against the line start
+    // (record years hang UNDER the line, left-aligned to the temp's left
+    // edge, so only the temp widths set the column). RIGHT: the TODAY tag.
+    // Both measured from the real strings so nothing clips at any size.
+    var leftReserve = 0, lt = [normalLo, normalHi, recordHi, recordLo], lw, li0;
+    for (li0 = 0; li0 < lt.length; li0++) {
+      if (typeof lt[li0] !== "number") continue;
+      lw = textW(lt[li0] + "°", 14);
+      if (lw > leftReserve) leftReserve = lw;
+    }
+    var rightReserve = 0;
+    if (hasToday) {
+      rightReserve = Math.max(textW("TODAY", 9, "bold"), textW(todayHi + "°", 14, "bold"));
+    }
+
+    // Gridlines span the full container width: temp labels flush LEFT,
+    // TODAY tag flush RIGHT. The swarm centers itself between the line ends
+    // and NEVER stretches to fill — leftover width just stays under the
+    // long gridlines.
+    var gridStartX = Math.ceil(leftReserve + CFG.labelGutter);
+    var gridEndX = Math.floor(W - rightReserve - CFG.labelGutter);
+    var Wu = gridEndX - gridStartX - 8;   // swarm width budget (small inset off the line ends)
+    if (Wu < 40) Wu = 40;
+    var cx = (gridStartX + gridEndX) / 2;
+
+    // ---- Dot sizing: LARGEST radius the box allows ----
+    // For each wrap count L (1..wrapMaxLines) scan whitespace ws (the
+    // VISIBLE gap between circle edges; pitch = 2r + ws): the width cap on
+    // r falls as ws grows while the wrapped diagonal-clearance cap rises,
+    // so the best ws is wherever min(width, vertical, radiusMax) peaks.
+    // Constraints per (L, ws):
+    //   width    r <= (Wu/2 - ws*q) / (2q + 1),   q = (mLineN-1)/2 (+1/4 stagger)
+    //   parted   r <= (Wu/2 - ws*m) / (hu + 2m + 1)  (today row incl hole)
+    //   vertical L=1: r <= rowPix * 0.48
+    //            L>1: wrapVertCap diagonal + same-parity 2r <= 2*subPitch - air
+    // A larger L is only adopted if it grows r by wrapGainMin (hysteresis).
+    var hu = CFG.todayMarkerScale + CFG.todayHoleGap;   // hole radius in r units
+    var candidates = [];
+    var prevCapN = null;
+    for (var L = 1; L <= CFG.wrapMaxLines; L++) {
+      if (L > 1 && maxN <= 2) break;                    // never worth wrapping tiny buckets
+      var capN = Math.ceil(maxN / L);
+      if (L > 1 && capN === prevCapN) continue;         // no change from the previous L — skip
+      prevCapN = capN;
+      var subP = rowPix / L;
+
+      // Widest actual SUB-LINE across buckets for this L (a wrapped bucket's
+      // per-line count is far smaller than its raw n), and today's per-line
+      // count (its parted row is the other width driver).
+      var mLineN = 1, bN, bLines, bLineN;
+      for (k in buckets) {
+        bN = buckets[k].length;
+        bLines = Math.min(L, Math.ceil(bN / capN));
+        bLineN = Math.ceil(bN / bLines);
+        if (bLineN > mLineN) mLineN = bLineN;
+      }
+      var tLines = 1, tLineN = 0;
+      if (todayN) { tLines = Math.min(L, Math.ceil(todayN / capN)); tLineN = Math.ceil(todayN / tLines); }
+      // Wrapped parting is lattice-quantized (see dotRow), which can push the
+      // outermost parted dot up to one extra gap outward — budget for it.
+      var mPart = Math.max(0, Math.ceil(tLineN / 2) - 1) + (L > 1 ? 1 : 0);
+
+      var q = (mLineN - 1) / 2 + (L > 1 ? 0.25 : 0);    // half-width in gap units (incl brick-stagger allowance)
+      var bR = 0, bWs = CFG.wrapAirPx;
+      for (var ws = CFG.wrapAirPx; ws <= CFG.dotWhitespaceMax + 0.001; ws += 0.25) {
+        var rW = (Wu / 2 - ws * q) / (2 * q + 1);
+        // Vertical rule guarantees wrapAirPx of air between rows at ANY
+        // horizontal alignment (dots on adjacent rows can sit dead vertical):
+        // L=1 rows are rowPix apart; wrapped same-parity lines 2*subP apart
+        // (same bound), plus the tighter diagonal rule for adjacent lines.
+        var rV = (L === 1) ? (rowPix - CFG.wrapAirPx) / 2
+                           : Math.min(wrapVertCap(subP, ws), subP - CFG.wrapAirPx / 2);
+        var rr = Math.min(rW, rV, CFG.dotRadiusMax);
+        if (hasToday) {
+          var rB = (Wu / 2 - ws * mPart) / (hu + 2 * mPart + 1);
+          if (rB < rr) rr = rB;
+        }
+        if (rr > bR) { bR = rr; bWs = ws; }
+      }
+      if (bR < CFG.dotRadiusMin) bR = CFG.dotRadiusMin;  // floor beats width fit; slight bleed > invisible dots
+      candidates.push({ L: L, capN: capN, r: bR, ws: bWs, q: q, mPart: mPart, mLineN: mLineN });
+    }
+
+    var best = candidates[0];
+    for (var ci = 1; ci < candidates.length; ci++) {
+      if (candidates[ci].r >= best.r * CFG.wrapGainMin) best = candidates[ci];
+    }
+    var r = best.r;
+    var subPitch = rowPix / best.L;
+
+    // With r settled, whitespace may GROW from the chosen sample up to the
+    // fill-width value — hard-capped at dotWhitespaceMax, never beyond
+    // (a swarm narrower than the box stays narrow and centered).
+    var wsFill = CFG.dotWhitespaceMax;
+    if (best.q > 0) {
+      var wA = (Wu / 2 - r * (2 * best.q + 1)) / best.q;
+      if (wA < wsFill) wsFill = wA;
+    }
+    if (hasToday && best.mPart > 0) {
+      var wB = (Wu / 2 - r * (hu + 2 * best.mPart + 1)) / best.mPart;
+      if (wB < wsFill) wsFill = wB;
+    }
+    var wsUsed = Math.max(best.ws, Math.min(CFG.dotWhitespaceMax, wsFill));
+    var gap = 2 * r + wsUsed;
+
+    // Marker/hole geometry scales with the final r; swarmHalf includes a
+    // quarter-gap allowance for the brick stagger shift so a staggered line
+    // never pokes past the un-staggered swarm edge.
+    var markerR = hasToday ? r * CFG.todayMarkerScale : 0;
+    var holeR = hasToday ? markerR + r * CFG.todayHoleGap : 0;
+    var partedHalf = hasToday ? (holeR + best.mPart * gap + r) : 0;
+    var swarmHalf = (best.mLineN - 1) / 2 * gap + r + (best.L > 1 ? gap / 4 : 0);
+    if (partedHalf > swarmHalf) swarmHalf = partedHalf;
+
+    svg.setAttribute("width", W);
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+    // General gridline labels sit on the LEFT (right-aligned before the line
+    // start); the TODAY tag is alone on the right.
+    gridlines(svg, yOf, gridStartX, gridEndX, gridStartX - CFG.labelGutter, "end",
+              normalLo, normalHi, recordHi, recordHiYear, recordLo, recordLoYear);
+
+    var keys = [];
+    for (k in buckets) { keys.push(k); }
+    // Sort buckets by temperature so consecutive iterations are vertical
+    // neighbours — the global stagger below alternates per RENDERED line, and
+    // that alternation only de-collides adjacent lines if we walk them in
+    // vertical order. (Harmless for L=1: row rendering is order-independent.)
+    keys.sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
+    // Global alternating stagger: in wrapped mode EVERY line — including
+    // single-line buckets — shifts ±gap/4, alternating by this running line
+    // counter. A per-bucket stagger would leave a single-line bucket at
+    // xShift 0 right next to a wrapped ±gap/4 line, close enough to overlap.
+    // Two corrections make the alternation actually deliver the gap/2
+    // relative lattice offset the diagonal clearance (cClear above) assumes:
+    // (1) sub-lines render BOTTOM-FIRST (li descending) so the walk is
+    //    monotonic in y — with keys ascending (y descending) and li ascending
+    //    the sequence zig-zags and vertically adjacent lines across a
+    //    wrapped/single boundary land on the SAME parity;
+    // (2) an even-dot-count line's centering lattice already sits gap/2 off an
+    //    odd one's (half-integer vs integer multiples of gap), which would
+    //    cancel the stagger exactly (a 25-dot bucket splits 13+12 — dots
+    //    stack dead vertical at subPitch), so even-count lines flip the
+    //    stagger sign to land back on the alternating lattice.
+    // The stagger only earns its keep between lines close enough VERTICALLY
+    // that a same-phase pair of dots would touch (dv < 2r + air). An isolated
+    // line — a sparse outlier bucket with empty buckets above and below — has
+    // no such neighbour, so shifting it ±gap/4 just knocks its dots off the
+    // marker's centre axis for no reason (the "uncentred bottom dots" bug).
+    // Pre-collect every rendered line's y, then skip the shift for any line
+    // whose nearest OTHER line is already a safe vertical distance away.
+    var collisionV = 2 * r + CFG.wrapAirPx;
+    var allLineYs = [];
+    if (best.L > 1) {
+      for (var pi = 0; pi < keys.length; pi++) {
+        var pRowY = yOf(parseFloat(keys[pi]));
+        var pLines = Math.min(best.L, Math.ceil(buckets[keys[pi]].length / best.capN));
+        for (var pli = 0; pli < pLines; pli++) {
+          allLineYs.push(pRowY + (pli - (pLines - 1) / 2) * subPitch);
+        }
+      }
+    }
+    function needsStagger(yv) {
+      for (var z = 0; z < allLineYs.length; z++) {
+        var dd = Math.abs(allLineYs[z] - yv);
+        if (dd > 1e-6 && dd < collisionV - 0.01) return true;
+      }
+      return false;
+    }
+
+    var globalLineIdx = 0;
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      var rowY = yOf(parseFloat(key));
+      var bucketYears = buckets[key];
+      var n = bucketYears.length;
+
+      // A crowded bucket wraps into up to best.L staggered sub-lines so no
+      // single line holds more than best.capN dots (that's what let gap/r
+      // grow back in the selection above). Most buckets have linesB === 1
+      // and this collapses to the original single-row behavior exactly.
+      var linesB = Math.min(best.L, Math.ceil(n / best.capN));
+      var basePer = Math.floor(n / linesB);
+      var rem = n % linesB;
+
+      // Sort newest-first once, then deal round-robin across the linesB
+      // lines (dot 0 -> line0, 1 -> line1, ...), stopping each line once it
+      // hits its quota (first `rem` lines get one extra). dotRow re-sorts
+      // and onion-centers each line's dots internally, so the round-robin
+      // deal just needs to spread newest years evenly across lines.
+      var byLine = [];
+      for (var li = 0; li < linesB; li++) byLine.push([]);
+      var lineQuota = [];
+      for (li = 0; li < linesB; li++) lineQuota.push(basePer + (li < rem ? 1 : 0));
+      var sortedYears = bucketYears.slice().sort(function (a, b) { return b[0] - a[0]; });
+      var lp = 0;
+      for (var yi2 = 0; yi2 < sortedYears.length; yi2++) {
+        var attempts = 0;
+        while (byLine[lp].length >= lineQuota[lp] && attempts < linesB) { lp = (lp + 1) % linesB; attempts++; }
+        byLine[lp].push(sortedYears[yi2]);
+        lp = (lp + 1) % linesB;
+      }
+
+      for (li = linesB - 1; li >= 0; li--) {
+        var yLine = rowY + (li - (linesB - 1) / 2) * subPitch;
+        var sgn = (globalLineIdx % 2 === 0) ? -1 : 1;
+        if (byLine[li].length % 2 === 0) sgn = -sgn;    // even-count lattice correction (see note above)
+        // Stagger only lines with a close vertical neighbour; isolated lines
+        // stay centred on cx. globalLineIdx still advances every line so the
+        // parity alternation within a dense cluster is unaffected.
+        var xShift = (best.L > 1 && needsStagger(yLine)) ? sgn * gap / 4 : 0;
+        globalLineIdx++;
+
+        // Circular hole: at vertical distance dv from the marker centre the
+        // line's hole half-width is sqrt(holeR²−dv²), so the today line AND
+        // the lines above/below it part just enough for the swarm to flow
+        // around the round marker. Lines beyond holeR are untouched.
+        var rowHole = 0;
+        if (hasToday) {
+          var dv = Math.abs(yLine - todayY);
+          if (dv < holeR) rowHole = Math.sqrt(holeR * holeR - dv * dv);
+        }
+        dotRow(svg, cx, yLine, byLine[li], r, gap, maxYear, rowHole, xShift, best.L > 1);
+      }
+    }
+
+    if (hasToday) {
+      var todayLabelX = gridEndX + CFG.labelGutter - CFG.todayLabelInset;
+      var minLabelX = cx + swarmHalf + 10;                 // never let the tag fall into the swarm
+      if (todayLabelX < minLabelX) todayLabelX = minLabelX;
+      todayMarker(svg, cx, todayY, markerR, r, todayHi, todayLabelX);
+    }
+  }
+
+  function renderAll() {
+    var els = document.querySelectorAll(".js-instrument");
+    for (var i = 0; i < els.length; i++) render(els[i]);
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    setTimeout(renderAll, 60);
+  });
+})();
+</script>
+
+<!-- Chart data — emitted once here for every size; the engine above reads these by class -->
+<script type="application/json" class="js-years">{{ years | json }}</script>
+<script type="application/json" class="js-today">{{ hi | json }}</script>
+<script type="application/json" class="js-normal-lo">{{ normal_lo | json }}</script>
+<script type="application/json" class="js-normal-hi">{{ normal_hi | json }}</script>
+<script type="application/json" class="js-record-hi">{{ record_hi | json }}</script>
+<script type="application/json" class="js-record-hi-year">{{ record_hi_year | json }}</script>
+<script type="application/json" class="js-record-lo">{{ record_lo | json }}</script>
+<script type="application/json" class="js-record-lo-year">{{ record_lo_year | json }}</script>
