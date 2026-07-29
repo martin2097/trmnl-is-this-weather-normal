@@ -6,9 +6,9 @@ static_data: ''
 polling_verb: get
 framework_version: 3.1.1
 serverless_language: python
-polling_url:
-polling_headers:
-polling_body:
+polling_url: 'https://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | default: latitude | split: '','' | first }}&longitude={{ lat_lon | default: longitude | split: '','' | last }}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&hourly=temperature_2m&past_hours=24&forecast_hours=1&current=temperature_2m&past_days=31&forecast_days=1&timezone=auto'
+polling_headers: ''
+polling_body: ''
 id: 377387
 oauth_enabled: 'false'
 oauth_pkce_enabled: 'no'
@@ -17,10 +17,10 @@ oauth_token_url: ''
 oauth_scopes: ''
 oauth_scope_separator: ''
 oauth_refresh_url: ''
-oauth_auth_params:
-oauth_token_headers:
+oauth_auth_params: ''
+oauth_token_headers: ''
 oauth_token_site: ''
-oauth_token_params:
+oauth_token_params: ''
 oauth_token_request_auth_method: ''
 oauth_body_format: ''
 oauth_token_response_metadata: ''
@@ -65,4 +65,3 @@ custom_fields:
   default: celsius
 name: Is this weather normal?
 refresh_interval: 120
-oauth_connection_config:
