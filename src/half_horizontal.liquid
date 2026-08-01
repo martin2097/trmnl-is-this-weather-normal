@@ -1,8 +1,18 @@
-{% if ok == false %}
+{% if skip_generation %}
   <div class="layout layout--col">
     {% render "skipped_state", err: error %}
   </div>
   {% render "titlebar", icon: icon_svg, title: plugin_title, inst: skip_inst %}
+  {% elsif initial_failure %}
+  <div class="layout layout--col">
+    {% render "initial_failure_state" %}
+  </div>
+  {% render "titlebar", icon: icon_svg, title: plugin_title, inst: updated_at %}
+  {% elsif ok == false %}
+  <div class="layout layout--col">
+    {% render "error_state", err: error %}
+  </div>
+  {% render "titlebar", icon: icon_svg, title: plugin_title, inst: updated_at %}
   {% else %}
   <div class="layout layout--col lg:gap--medium stretch-y my--1 mx--2">
     <div class="flex lg:hidden lg:portrait:flex flex--col flex--left gap--none no-shrink w--full">
@@ -37,7 +47,7 @@
             </span>
             <div class="divider my--1 w--10"></div>
             <span class="text text--base">
-            Low 
+            Low
               <span class="value value--xxsmall lg:value--xsmall font--bold">
                 {{ lo }}
                °
@@ -102,7 +112,7 @@
             </span>
             <div class="divider my--1 w--10"></div>
             <span class="text text--base">
-            Low 
+            Low
               <span class="value value--xsmall font--bold">
                 {{ lo }}
               </span>
@@ -194,11 +204,11 @@
         </div>
       </div>
       <div class="col--span-5 flex flex--col stretch-y text--left">
-        <!--        chart container: change flex--left → flex--center / flex--right to move the label+chart block; add p--*/pl--* to pad        -->
+        <!-- chart container: change flex--left → flex--center / flex--right to move the label+chart block; add p--*/pl--* to pad -->
         <div class="flex flex--col flex--left stretch-x gap--none pl--6">
           <span class="hidden lg:visible label label--small">
             {{ date_label | upcase }}
-             HIGHS DISTRIBUTION · Since 
+             HIGHS DISTRIBUTION · Since
             {{ since_year }}
           </span>
           <div class="hidden lg:portrait:visible mx--4">
