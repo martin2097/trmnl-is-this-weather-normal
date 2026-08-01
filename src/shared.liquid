@@ -23,6 +23,13 @@
 </div>
 {% endtemplate %}
 
+{% template initial_failure_state %}
+<div class="flex flex--col flex--center stretch-x stretch-y gap--small text--center">
+  <span class="title title--small">Weather history isn&rsquo;t ready</span>
+  <span class="label label--gray-35 1bit:text--black">Initial load failed. Please force refresh this plugin in a few minutes.</span>
+</div>
+{% endtemplate %}
+
 {% template skipped_state %}
 <script>window.TRMNL_SKIP_SCREEN_GENERATION = true;</script>
 <div class="flex flex--col flex--center stretch-x stretch-y gap--small">
@@ -40,11 +47,13 @@
   // span). Radius is then chosen as large as the box allows (vertical fit +
   // width fit, trying 1..wrapMaxLines staggered sub-lines). Whitespace
   // (visible gap between circle EDGES, not center-to-center pitch) fills in
-  // whatever room is left, capped at dotWhitespaceMax — it never stretches
-  // to fill the box. If the swarm ends up narrower than the box, it's
-  // centered and the gridlines still span the full width (see render()).
+  // whatever room is left, capped at dotWhitespaceMax (single-line rows) /
+  // wrapWhitespaceMax (wrapped sub-lines) — it never stretches to fill the
+  // box. If the swarm ends up narrower than the box, it's centered and the
+  // gridlines still span the full width (see render()).
   var CFG = {
-    dotWhitespaceMax: 3,   // hard cap on VISIBLE whitespace between adjacent circle edges (pitch - 2r). Radius wins first; whitespace only fills in up to this cap.
+    dotWhitespaceMax: 3,   // hard cap on VISIBLE whitespace between adjacent circle edges (pitch - 2r) on UNWRAPPED lines. Radius wins first; whitespace only fills in up to this cap.
+    wrapWhitespaceMax: 6,  // in-row whitespace cap for WRAPPED lines only — in brick mode the visual nearest-neighbour gap is the stagger diagonal (held at wrapAirPx), so a wider in-row pitch doesn't read as sparse and converts unused width into dot radius. Kept moderate: past ~2r the lattice reads as a sparse zigzag, and a huge cap lets a marginal wrapped candidate outbid an already-good single-line layout (OG full flips at 12).
     dotRadiusMin: 2.4,     // floor so dots never vanish in crowded buckets
     dotRadiusMax: 9,       // safety cap on dot radius (generous — vertical/width fit almost always binds first)
     todayMarkerScale: 2.0, // "today" marker radius in DOT-RADIUS units (scales with the dots, no fixed px floor)
@@ -216,7 +225,7 @@
   // Onion ordering: sort the bucket's years NEWEST FIRST, then assign them
   // to slots ordered center-out -- newest (darkest tones) lands in the
   // middle, older years (lighter tones) ring outward.
-  function dotRow(svg, cx, y, yearsInBucket, r, gap, maxYear, holeR, xShift, lattice) {
+  function dotRow(svg, cx, y, yearsInBucket, r, gap, maxYear, holeR, xShift, lattice, hardHole) {
     var n = yearsInBucket.length;
     if (!n) return;
     xShift = xShift || 0;
@@ -233,12 +242,64 @@
         // assumes every neighbouring line is offset by exactly gap/2. So
         // instead of exact ±holeR positions (arbitrary phase!), fill this
         // line's own lattice slots (phase = stagger shift, +gap/2 when an
-        // even count centres on a half-slot) nearest the hole first,
-        // skipping slots inside it. The hole edge lands within one gap of
-        // holeR — visually identical, geometrically safe.
+        // even count centres on a half-slot). The two FIRST slots (right
+        // edge a, left edge b) are chosen JOINTLY, not independently —
+        // per-side rounding can leave one edge a full gap farther out than
+        // the other (a lopsided hole). Each side offers its nearest slot to
+        // the design hole edge (holeR) plus that slot's two neighbours;
+        // candidates at/left of centre or inside the marker's hard circular
+        // footprint are discarded (hardHole = the caller's dv-aware minimum
+        // |x| for this line, sqrt((markerR+1.7r−0.3)^2 − dv^2), the halo-clip
+        // floor — a 1-D hole edge alone can't see the true 2-D distance to
+        // the marker).
+        // Every surviving (a, b) pair is scored: PRIMARY minimise |a-b|
+        // (symmetry), SECONDARY minimise |a-holeR|+|b-holeR| (snugness).
+        // a+b stays an integer multiple of gap, so in-row spacing across
+        // the hole is safe by construction; the best achievable |a-b| is 0
+        // on unstaggered lines and gap/2 on staggered ones. The hard floor
+        // always outranks symmetry (violating candidates never enter).
         var phase = xShift + (n % 2 === 0 ? gap / 2 : 0);
-        var mR = Math.ceil((holeR - phase) / gap);
-        var mL = Math.floor((-holeR - phase) / gap);
+        var hh = hardHole || 0;
+        var mm, e;
+        var baseR = Math.round((holeR - phase) / gap);
+        var candR = [];
+        for (mm = baseR - 1; mm <= baseR + 1; mm++) {
+          e = phase + mm * gap;
+          if (e > 0 && e >= hh) candR.push(mm);
+        }
+        mm = baseR + 2;
+        while (!candR.length) {
+          e = phase + mm * gap;
+          if (e > 0 && e >= hh) candR.push(mm);
+          mm++;
+        }
+        var baseL = Math.round((-holeR - phase) / gap);
+        var candL = [];
+        for (mm = baseL + 1; mm >= baseL - 1; mm--) {
+          e = -(phase + mm * gap);
+          if (e > 0 && e >= hh) candL.push(mm);
+        }
+        mm = baseL - 2;
+        while (!candL.length) {
+          e = -(phase + mm * gap);
+          if (e > 0 && e >= hh) candL.push(mm);
+          mm--;
+        }
+        var mR = candR[0], mL = candL[0];
+        var bestSym = -1, bestFit = 0, ci, cj, aE, bE, dSym, dFit;
+        for (ci = 0; ci < candR.length; ci++) {
+          for (cj = 0; cj < candL.length; cj++) {
+            aE = phase + candR[ci] * gap;
+            bE = -(phase + candL[cj] * gap);
+            dSym = Math.abs(aE - bE);
+            dFit = Math.abs(aE - holeR) + Math.abs(bE - holeR);
+            if (bestSym < 0 || dSym < bestSym - 1e-9 ||
+                (dSym < bestSym + 1e-9 && dFit < bestFit)) {
+              bestSym = dSym; bestFit = dFit;
+              mR = candR[ci]; mL = candL[cj];
+            }
+          }
+        }
         for (i = 0; i < n; i++) {
           var xq;
           if (i % 2 === 0) { xq = phase + mR * gap; mR++; }
@@ -561,7 +622,13 @@
 
       var q = (mLineN - 1) / 2 + (L > 1 ? 0.25 : 0);    // half-width in gap units (incl brick-stagger allowance)
       var bR = 0, bWs = CFG.wrapAirPx;
-      for (var ws = CFG.wrapAirPx; ws <= CFG.dotWhitespaceMax + 0.001; ws += 0.25) {
+      // Wrapped lines may scan far wider in-row whitespace: their visual
+      // nearest-neighbour gap is the stagger diagonal (held at wrapAirPx by
+      // wrapVertCap), so a wide pitch doesn't read as sparse — it just lets
+      // the diagonal rule buy a bigger radius from unused width. L==1 keeps
+      // the tight cap (there a wide pitch WOULD look sparse).
+      var wsMaxL = (L === 1) ? CFG.dotWhitespaceMax : CFG.wrapWhitespaceMax;
+      for (var ws = CFG.wrapAirPx; ws <= wsMaxL + 0.001; ws += 0.25) {
         var rW = (Wu / 2 - ws * q) / (2 * q + 1);
         // Vertical rule guarantees wrapAirPx of air between rows at ANY
         // horizontal alignment (dots on adjacent rows can sit dead vertical):
@@ -715,11 +782,27 @@
         // the lines above/below it part just enough for the swarm to flow
         // around the round marker. Lines beyond holeR are untouched.
         var rowHole = 0;
+        // Hard circular floor (2-D, dv-aware): the minimum |x| this line's
+        // dots must clear around the marker, whatever the 1-D lattice
+        // rounding lands on. The floor is the HALO-CLIP bound, not an air
+        // gap: the marker paints a white halo of radius haloR = markerR +
+        // 0.7r over the dots, so a dot whose edge stays outside the halo
+        // reads as cleanly separated (white on white). Centre floor =
+        // haloR + r − 0.3px tolerance = markerR + 1.7r − 0.3 (a dot tangent
+        // to the halo is fine; 0.3px of clip is invisible on e-ink, and the
+        // dot can never touch the visible ring since 1.7r−0.3 > r for any
+        // r ≥ 0.43). A stricter floor would quantize AGAINST the lattice:
+        // it can sit a hair inside a slot that looks perfectly snug and
+        // shove that side a whole gap out (the lopsided-hole bug).
+        var hardHole = 0;
         if (hasToday) {
           var dv = Math.abs(yLine - todayY);
           if (dv < holeR) rowHole = Math.sqrt(holeR * holeR - dv * dv);
+          var hfloor = markerR + 1.7 * r - 0.3;
+          var hfSq = hfloor * hfloor - dv * dv;
+          if (hfSq > 0) hardHole = Math.sqrt(hfSq);
         }
-        dotRow(svg, cx, yLine, byLine[li], r, gap, maxYear, rowHole, xShift, best.L > 1);
+        dotRow(svg, cx, yLine, byLine[li], r, gap, maxYear, rowHole, xShift, best.L > 1, hardHole);
       }
     }
 

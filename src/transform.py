@@ -1,8 +1,4 @@
 import datetime
-import requests
-
-ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
-ARCHIVE_TIMEOUT = 10
 DRY_MM = 1.0          # below this = "dry" day
 WET_MM = 1.0           # at/above this = "wet" day (for rain-window percentile)
 MIN_YEARS_SINCE = 10   # "since YYYY" only claimed if >= this many years ago
@@ -131,10 +127,15 @@ def _loc_label(fields, lat, lon):
     label = fields.get("location_label")
     if label and str(label).strip():
         return str(label).strip()
-    ns = "N" if lat >= 0 else "S"
-    ew = "E" if lon >= 0 else "W"
-    return ""
-#    return "%.2f°%s, %.2f°%s" % (abs(lat), ns, abs(lon), ew)
+
+    def coordinate(value, positive, negative):
+        number = ("%.2f" % abs(value)).rstrip("0").rstrip(".")
+        return number + "°" + (negative if value < 0 else positive)
+
+    return "%s, %s" % (
+        coordinate(lat, "N", "S"),
+        coordinate(lon, "E", "W"),
+    )
 
 
 def _units(fields):
@@ -180,6 +181,412 @@ def _build_archive_index(daily, utc_offset=0):
             continue
         by_md.setdefault((d.month, d.day), []).append((d.year, tmax, tmin, prcp))
         by_date[d] = (tmax, tmin, prcp)
+    return by_md, by_date
+
+
+def _unwrap_polling_input(payload):
+    """Return (forecast, archive_shards) for TRMNL's multi-URL envelope."""
+    payload = payload if isinstance(payload, dict) else {}
+    if "IDX_0" not in payload:
+        return payload, []
+
+    indexed = {}
+    for key, value in payload.items():
+        if not isinstance(key, str) or not key.startswith("IDX_"):
+            continue
+        suffix = key[4:]
+        if suffix.isdigit():
+            indexed[int(suffix)] = value
+
+    if not indexed or 0 not in indexed:
+        raise ValueError("Forecast polling response is missing")
+    highest = max(indexed)
+    if set(indexed) != set(range(highest + 1)):
+        raise ValueError("A polling response is missing")
+    if not isinstance(indexed[0], dict):
+        raise ValueError("Forecast response is invalid")
+
+    forecast = dict(indexed[0])
+    if "trmnl" not in forecast and isinstance(payload.get("trmnl"), dict):
+        forecast["trmnl"] = payload["trmnl"]
+    return forecast, [indexed[i] for i in range(1, highest + 1)]
+
+
+def _archive_date(raw_time, utc_offset):
+    epoch = datetime.datetime(1970, 1, 1)
+    try:
+        return (epoch + datetime.timedelta(
+            seconds=int(raw_time) + utc_offset)).date()
+    except (TypeError, ValueError, OverflowError):
+        try:
+            return datetime.date.fromisoformat(str(raw_time)[:10])
+        except Exception:
+            return None
+
+
+ARCHIVE_YEARS_PER_SHARD = 9
+
+WORKER_SCHEMA_VERSION = 1
+CLIMATE_MODEL = "best_match"
+CLIMATE_FIRST_YEAR = 1940
+CLIMATE_YEARS_PER_PART = 30
+CLIMATE_REQUIRED_PAST_DAYS = 37
+CLIMATE_REQUIRED_FUTURE_DAYS = 7
+RECENT_COMPLETED_DAYS = 31
+
+
+class _WorkerDatasetError(ValueError):
+    """A Worker dataset is unavailable or violates its declared contract."""
+
+    def __init__(self, message, initial=False):
+        ValueError.__init__(self, message)
+        self.initial = bool(initial)
+
+
+def _indexed_polling_values(payload):
+    """Return numeric IDX values without assuming the legacy shard count."""
+    indexed = {}
+    if not isinstance(payload, dict):
+        return indexed
+    for key, value in payload.items():
+        if not isinstance(key, str) or not key.startswith("IDX_"):
+            continue
+        suffix = key[4:]
+        if suffix.isdigit():
+            indexed[int(suffix)] = value
+    return indexed
+
+
+def _is_worker_contract(indexed):
+    """Detect the v1 Worker contract while preserving legacy polling input."""
+    for index in indexed:
+        if index < 1:
+            continue
+        value = indexed.get(index)
+        if (isinstance(value, dict) and
+                value.get("schema_version") == WORKER_SCHEMA_VERSION and
+                value.get("kind") in ("recent", "climate")):
+            return True
+    return False
+
+
+def _expected_climate_part_count(today):
+    completed_years = max(0, today.year - CLIMATE_FIRST_YEAR)
+    return (
+        completed_years + CLIMATE_YEARS_PER_PART - 1
+    ) // CLIMATE_YEARS_PER_PART
+
+
+def _worker_daily(response, expected_kind):
+    """Validate one Worker response and return canonical Open-Meteo arrays.
+
+    Worker payloads use compact array names to stay comfortably below
+    TRMNL's polling response limit. Raw Open-Meteo names are also accepted so
+    fixtures and emergency/manual cache repairs remain straightforward.
+    """
+    if not isinstance(response, dict):
+        raise _WorkerDatasetError(
+            "%s cache response is missing" % expected_kind.capitalize(),
+            initial=True)
+
+    had_success = response.get("had_success") is True
+    status = str(response.get("status") or "").lower()
+    if response.get("schema_version") != WORKER_SCHEMA_VERSION:
+        raise _WorkerDatasetError(
+            "%s cache schema is unsupported" % expected_kind.capitalize(),
+            initial=not had_success)
+    if response.get("kind") != expected_kind:
+        raise _WorkerDatasetError(
+            "%s cache response has the wrong kind" % expected_kind.capitalize(),
+            initial=not had_success)
+    if status not in ("ready", "stale"):
+        raise _WorkerDatasetError(
+            "%s cache is not ready" % expected_kind.capitalize(),
+            initial=not had_success)
+
+    daily = response.get("daily")
+    if not isinstance(daily, dict):
+        raise _WorkerDatasetError(
+            "%s cache data is invalid" % expected_kind.capitalize(),
+            initial=not had_success)
+
+    canonical = {
+        "time": daily.get("time"),
+        "temperature_2m_max": daily.get("tmax", daily.get("temperature_2m_max")),
+        "temperature_2m_min": daily.get("tmin", daily.get("temperature_2m_min")),
+        "precipitation_sum": daily.get(
+            "precipitation", daily.get("precipitation_sum")),
+    }
+    if any(not isinstance(values, list) for values in canonical.values()):
+        raise _WorkerDatasetError(
+            "%s cache arrays are invalid" % expected_kind.capitalize(),
+            initial=not had_success)
+    lengths = [len(values) for values in canonical.values()]
+    if not lengths[0] or len(set(lengths)) != 1:
+        raise _WorkerDatasetError(
+            "%s cache arrays are incomplete" % expected_kind.capitalize(),
+            initial=not had_success)
+    return canonical
+
+
+def _daily_rows(daily, utc_offset=0, require_all_values=True):
+    """Convert canonical daily arrays into a strict date -> values map."""
+    rows = {}
+    times = daily["time"]
+    tmax_l = daily["temperature_2m_max"]
+    tmin_l = daily["temperature_2m_min"]
+    prcp_l = daily["precipitation_sum"]
+    for i, raw_time in enumerate(times):
+        d = _archive_date(raw_time, utc_offset)
+        if d is None or d in rows:
+            raise ValueError("Daily data contains an invalid or duplicate date")
+        values = (_f(tmax_l[i]), _f(tmin_l[i]), _f(prcp_l[i]))
+        if require_all_values and any(value is None for value in values):
+            raise ValueError("Daily data contains an invalid value")
+        rows[d] = values
+    return rows
+
+
+def _validate_recent_daily(daily, today):
+    """Require all 31 completed local days, ending yesterday."""
+    rows = _daily_rows(daily)
+    required = set(
+        today - datetime.timedelta(days=offset)
+        for offset in range(1, RECENT_COMPLETED_DAYS + 1)
+    )
+    if not required.issubset(rows):
+        raise ValueError("Recent weather coverage is incomplete")
+    return rows
+
+
+def _validate_worker_metadata(responses, lat, lon, forecast, today):
+    """Ensure all cached datasets describe one location and methodology."""
+    locations = []
+    for response in responses:
+        location = response.get("location")
+        if not isinstance(location, dict):
+            raise ValueError("Weather cache location metadata is missing")
+        locations.append(location)
+
+    location_keys = [str(item.get("key") or "") for item in locations]
+    if not location_keys[0] or len(set(location_keys)) != 1:
+        raise ValueError("Weather cache locations do not match")
+    timezones = [str(item.get("timezone") or "") for item in locations]
+    if not timezones[0] or len(set(timezones)) != 1:
+        raise ValueError("Weather cache timezones do not match")
+    # Offsets are informational snapshots and can legitimately differ when
+    # immutable cache objects straddle a daylight-saving transition. ISO
+    # local dates plus the IANA timezone are authoritative.
+    offsets = [item.get("utc_offset_seconds") for item in locations]
+    if any(value is not None and not isinstance(value, (int, float))
+           for value in offsets):
+        raise ValueError("Weather cache UTC offset is invalid")
+
+    expected_lat = round(lat, 6)
+    expected_lon = round(lon, 6)
+    for location in locations:
+        cached_lat = _f(location.get("latitude"))
+        cached_lon = _f(location.get("longitude"))
+        if (cached_lat is None or cached_lon is None or
+                abs(cached_lat - expected_lat) > 0.0000011 or
+                abs(cached_lon - expected_lon) > 0.0000011):
+            raise ValueError("Weather cache coordinates do not match")
+
+    forecast_timezone = forecast.get("timezone")
+    if (forecast_timezone and str(forecast_timezone) != timezones[0]):
+        raise ValueError("Live and cached weather timezones do not match")
+    recent = responses[0]
+    if recent.get("source") != "forecast":
+        raise ValueError("Recent cache source is unsupported")
+
+    climates = sorted(responses[1:], key=lambda item: item.get("part", -1))
+    expected_part_count = _expected_climate_part_count(today)
+    if [item.get("part") for item in climates] != list(range(expected_part_count)):
+        raise ValueError("Climate cache partitions are invalid")
+    if any(item.get("model") != CLIMATE_MODEL for item in climates):
+        raise ValueError("Climate cache model is unsupported")
+    if any(item.get("last_completed_year") != today.year - 1
+           for item in climates):
+        raise ValueError("Climate cache year is stale")
+    bucket_keys = []
+    next_year = CLIMATE_FIRST_YEAR
+    for item in climates:
+        year_start = item.get("year_start")
+        year_end = item.get("year_end")
+        expected_year_end = min(
+            next_year + CLIMATE_YEARS_PER_PART - 1, today.year - 1)
+        if (not isinstance(year_start, int) or not isinstance(year_end, int) or
+                year_start != next_year or year_end != expected_year_end):
+            raise ValueError("Climate cache year ranges are invalid")
+        next_year = year_end + 1
+        bucket = item.get("bucket")
+        if not isinstance(bucket, dict):
+            raise ValueError("Climate cache bucket metadata is missing")
+        bucket_keys.append((bucket.get("start"), bucket.get("end")))
+    if next_year != today.year or len(set(bucket_keys)) != 1:
+        raise ValueError("Climate cache coverage metadata is inconsistent")
+
+
+def _merge_live_and_recent_daily(live_daily, recent_rows):
+    """Return recent completed days plus live today's forecast, date sorted."""
+    live = {
+        "time": live_daily.get("time") or [],
+        "temperature_2m_max": live_daily.get("temperature_2m_max") or [],
+        "temperature_2m_min": live_daily.get("temperature_2m_min") or [],
+        "precipitation_sum": live_daily.get("precipitation_sum") or [],
+    }
+    rows = dict(recent_rows)
+    for i, raw_time in enumerate(live["time"]):
+        d = _archive_date(raw_time, 0)
+        if d is None:
+            continue
+        rows[d] = (
+            _f(live["temperature_2m_max"][i])
+            if i < len(live["temperature_2m_max"]) else None,
+            _f(live["temperature_2m_min"][i])
+            if i < len(live["temperature_2m_min"]) else None,
+            _f(live["precipitation_sum"][i])
+            if i < len(live["precipitation_sum"]) else None,
+        )
+    ordered = sorted(rows)
+    return {
+        "time": [d.isoformat() for d in ordered],
+        "temperature_2m_max": [rows[d][0] for d in ordered],
+        "temperature_2m_min": [rows[d][1] for d in ordered],
+        "precipitation_sum": [rows[d][2] for d in ordered],
+    }
+
+
+def _build_windowed_climate_indexes(parts, today):
+    """Validate and combine cached 30-year seasonal climate partitions.
+
+    The transform needs at most today-37 through today+7 for each completed
+    historical year. Workers may return a larger 64-day bucket superset, but
+    every date needed to support a displayed claim must be present and valid.
+    """
+    if len(parts) != _expected_climate_part_count(today):
+        raise ValueError("Climate cache response count is incomplete")
+
+    by_date = {}
+    for part in parts:
+        daily = _worker_daily(part, "climate")
+        rows = _daily_rows(daily)
+        for d, values in rows.items():
+            if d in by_date:
+                raise ValueError("Climate cache parts overlap")
+            by_date[d] = values
+
+    # Downstream logic consumes two different representations:
+    # month/day samples for temperature and 30-day climatology, plus exact
+    # contiguous dates for historical trailing-rain windows. Validate the
+    # precise union rather than an approximate anchor window (which is not
+    # equivalent around New Year or leap day).
+    seasonal_md = set()
+    for offset in range(
+            -CLIMATE_REQUIRED_PAST_DAYS,
+            CLIMATE_REQUIRED_FUTURE_DAYS + 1):
+        d = today + datetime.timedelta(days=offset)
+        seasonal_md.add((d.month, d.day))
+
+    required = set()
+    for year in range(CLIMATE_FIRST_YEAR, today.year):
+        for month, day in seasonal_md:
+            try:
+                required.add(datetime.date(year, month, day))
+            except ValueError:
+                # February 29 legitimately has no sample in non-leap years.
+                pass
+        try:
+            anchor = datetime.date(year, today.month, today.day)
+        except ValueError:
+            anchor = datetime.date(year, today.month, 28)
+        for offset in range(-13, CLIMATE_REQUIRED_FUTURE_DAYS + 1):
+            required.add(anchor + datetime.timedelta(days=offset))
+    if not required.issubset(by_date):
+        raise ValueError("Climate cache coverage is incomplete")
+
+    by_md = {}
+    for d in sorted(by_date):
+        tmax, tmin, prcp = by_date[d]
+        by_md.setdefault((d.month, d.day), []).append(
+            (d.year, tmax, tmin, prcp))
+    return by_md, by_date
+
+
+def _failure(error, updated_at, initial=False, skip=False):
+    return {
+        "ok": False,
+        "error": error,
+        "updated_at": updated_at,
+        "initial_failure": bool(initial),
+        "skip_generation": bool(skip),
+    }
+
+
+def _build_archive_indexes(shards, utc_offset, today):
+    """Validate and combine chronological archive slices of up to nine years.
+
+    Dates are merged before the month/day index is derived. This prevents
+    overlap from double-counting historical observations, and it makes any
+    missing or malformed shard fail closed before record claims are produced.
+    """
+    last_complete_year = today.year - 1
+    completed_years = max(0, last_complete_year - 1940 + 1)
+    expected_count = (
+        completed_years + ARCHIVE_YEARS_PER_SHARD - 1
+    ) // ARCHIVE_YEARS_PER_SHARD
+    if len(shards) != expected_count:
+        raise ValueError("Climate history response count is incomplete")
+
+    by_date = {}
+    for shard_index, shard in enumerate(shards):
+        if not isinstance(shard, dict):
+            raise ValueError("Climate history response is invalid")
+        daily = shard.get("daily")
+        if not isinstance(daily, dict):
+            raise ValueError("Climate history response is invalid")
+
+        arrays = [daily.get(name) for name in (
+            "time", "temperature_2m_max", "temperature_2m_min",
+            "precipitation_sum")]
+        if any(not isinstance(values, list) for values in arrays):
+            raise ValueError("Climate history arrays are invalid")
+        lengths = [len(values) for values in arrays]
+        if not lengths[0] or len(set(lengths)) != 1:
+            raise ValueError("Climate history arrays are incomplete")
+
+        shard_offset = shard.get("utc_offset_seconds")
+        if not isinstance(shard_offset, (int, float)):
+            shard_offset = utc_offset
+
+        first_anchor_year = (
+            1940 + shard_index * ARCHIVE_YEARS_PER_SHARD)
+        last_anchor_year = min(
+            first_anchor_year + ARCHIVE_YEARS_PER_SHARD - 1,
+            last_complete_year)
+        expected_start = datetime.date(first_anchor_year, 1, 1)
+        expected_end = datetime.date(last_anchor_year, 12, 31)
+        shard_dates = []
+        for raw_time in arrays[0]:
+            d = _archive_date(raw_time, shard_offset)
+            if d is None:
+                raise ValueError("Climate history contains an invalid date")
+            shard_dates.append(d)
+        if (min(shard_dates) != expected_start or
+                max(shard_dates) != expected_end):
+            raise ValueError("Climate history date coverage is incomplete")
+
+        _unused_by_md, shard_by_date = _build_archive_index(daily, shard_offset)
+        for d, values in shard_by_date.items():
+            if d in by_date:
+                raise ValueError("Climate history shards overlap")
+            by_date[d] = values
+
+    by_md = {}
+    for d in sorted(by_date):
+        tmax, tmin, prcp = by_date[d]
+        by_md.setdefault((d.month, d.day), []).append(
+            (d.year, tmax, tmin, prcp))
     return by_md, by_date
 
 
@@ -458,11 +865,23 @@ def _rain7_history(today, by_date, r7_value):
 
 def run(input):
     try:
-        input = input or {}
-        lat, lon, fields = _parse_coords(input)
+        envelope = input or {}
+        indexed = _indexed_polling_values(envelope)
+        worker_contract = _is_worker_contract(indexed)
 
-        # updated_at needs utc_offset; fall back to input root, else UTC
-        utc_offset = input.get("utc_offset_seconds")
+        if "IDX_0" in envelope:
+            raw_forecast = indexed.get(0)
+            forecast = dict(raw_forecast) if isinstance(raw_forecast, dict) else {}
+            if "trmnl" not in forecast and isinstance(envelope.get("trmnl"), dict):
+                forecast["trmnl"] = envelope["trmnl"]
+        else:
+            # Preserve direct/monolithic input for local fixtures and the
+            # pre-multi-URL plugin contract.
+            forecast = envelope if isinstance(envelope, dict) else {}
+        lat, lon, fields = _parse_coords(forecast)
+
+        # updated_at needs utc_offset; fall back to forecast root, else UTC
+        utc_offset = forecast.get("utc_offset_seconds")
         if not isinstance(utc_offset, (int, float)):
             utc_offset = 0
         tz = datetime.timezone(datetime.timedelta(seconds=utc_offset))
@@ -470,23 +889,87 @@ def run(input):
         updated_at = now_local.strftime("%H:%M")
 
         if lat is None or lon is None:
-            return {"ok": False, "error": "Check your coordinates in plugin settings",
-                    "updated_at": updated_at}
+            return _failure(
+                "Check your coordinates in plugin settings", updated_at)
 
         units = _units(fields)
         loc = _loc_label(fields, lat, lon)
 
-        daily = input.get("daily") or {}
-        hourly = input.get("hourly") or {}
-        current = input.get("current") or {}
+        if not isinstance(forecast, dict) or not forecast.get("daily"):
+            return _failure(
+                "Forecast data unavailable right now", updated_at, skip=True)
 
-        d_times = daily.get("time") or []
-        if not d_times:
-            return {"ok": False, "error": "Forecast data unavailable right now",
-                    "updated_at": updated_at}
+        live_daily = forecast.get("daily") or {}
+        daily = live_daily
+        hourly = forecast.get("hourly") or {}
+        current = forecast.get("current") or {}
 
         today = now_local.date()
         today_iso = today.isoformat()
+
+        live_times = live_daily.get("time") or []
+        if today_iso not in live_times:
+            return _failure(
+                "Forecast data unavailable right now", updated_at, skip=True)
+
+        # New contract: IDX_1 is the cached recent ring and IDX_2..4 are the
+        # rolling 30-year climate partitions. Legacy nine-year archive shards
+        # remain accepted during the live-settings rollout.
+        if worker_contract:
+            climate_part_count = _expected_climate_part_count(today)
+            final_index = climate_part_count + 1
+            responses = [indexed.get(i) for i in range(1, final_index + 1)]
+            # Only an explicit structured `had_success: false` proves this is
+            # initial loading. A missing/non-dict IDX is a transport failure
+            # with unknown prior state, so preserve the previous screen.
+            any_never_succeeded = any(
+                isinstance(response, dict) and
+                response.get("had_success") is False
+                for response in responses)
+            validation_errors = []
+            canonical_daily = []
+            for index, response in enumerate(responses):
+                expected_kind = "recent" if index == 0 else "climate"
+                try:
+                    canonical_daily.append(
+                        _worker_daily(response, expected_kind))
+                except _WorkerDatasetError as exc:
+                    validation_errors.append(str(exc))
+                    canonical_daily.append(None)
+            if set(indexed) != set(range(final_index + 1)):
+                validation_errors.append(
+                    "Weather cache response count is incomplete")
+            if validation_errors:
+                return _failure(
+                    validation_errors[0], updated_at,
+                    initial=any_never_succeeded,
+                    skip=not any_never_succeeded)
+            try:
+                _validate_worker_metadata(
+                    responses, lat, lon, forecast, today)
+                recent_daily = canonical_daily[0]
+                recent_rows = _validate_recent_daily(recent_daily, today)
+                daily = _merge_live_and_recent_daily(live_daily, recent_rows)
+                by_md, by_date = _build_windowed_climate_indexes(
+                    [indexed[i] for i in range(2, final_index + 1)], today)
+            except (TypeError, ValueError):
+                return _failure(
+                    "Weather history is incomplete — will retry next refresh",
+                    updated_at,
+                    initial=any_never_succeeded,
+                    skip=not any_never_succeeded)
+        else:
+            try:
+                _legacy_forecast, archive_shards = _unwrap_polling_input(envelope)
+                by_md, by_date = _build_archive_indexes(
+                    archive_shards, utc_offset, today)
+            except (TypeError, ValueError):
+                return _failure(
+                    "Climate history is incomplete — will retry next refresh",
+                    updated_at,
+                    skip=True)
+
+        d_times = daily.get("time") or []
 
         d_tmax_l = daily.get("temperature_2m_max") or [None] * len(d_times)
         d_tmin_l = daily.get("temperature_2m_min") or [None] * len(d_times)
@@ -536,44 +1019,12 @@ def run(input):
             tmin_today_c = tmin_fc
 
         if hi_c is None:
-            return {"ok": False, "error": "Forecast data unavailable right now",
-                    "updated_at": updated_at}
+            return _failure(
+                "Forecast data unavailable right now", updated_at, skip=True)
 
         temp_now_c = _f(current.get("temperature_2m"))
         if temp_now_c is None:
             temp_now_c = hi_c
-
-        # --- fetch archive (unchanged: 1940-01-01 -> today-6d, 3 daily vars) ---
-        end_date = (today - datetime.timedelta(days=6)).isoformat()
-        try:
-            resp = requests.get(
-                ARCHIVE_URL,
-                params={
-                    "latitude": lat,
-                    "longitude": lon,
-                    "start_date": "1940-01-01",
-                    "end_date": end_date,
-                    "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum",
-                    "timezone": "auto",
-                    "timeformat": "unixtime",
-                },
-                timeout=ARCHIVE_TIMEOUT,
-            )
-            resp.raise_for_status()
-            archive = resp.json()
-        except Exception:
-            return {"ok": False, "error": "Couldn't reach the climate archive — will retry next refresh",
-                    "updated_at": updated_at}
-
-        archive_daily = archive.get("daily") or {}
-        archive_offset = archive.get("utc_offset_seconds")
-        if not isinstance(archive_offset, (int, float)):
-            archive_offset = utc_offset
-        by_md, by_date = _build_archive_index(archive_daily, archive_offset)
-
-        if not by_md:
-            return {"ok": False, "error": "Couldn't reach the climate archive — will retry next refresh",
-                    "updated_at": updated_at}
 
         md_key = (today.month, today.day)
         same_date_all = sorted(by_md.get(md_key, []), key=lambda t: t[0])
@@ -599,8 +1050,9 @@ def run(input):
                     window_wet_prcp.append(pr)
 
         if not window_tmax:
-            return {"ok": False, "error": "Not enough climate history for this location",
-                    "updated_at": updated_at}
+            return _failure(
+                "Not enough climate history for this location", updated_at,
+                skip=True)
 
         # === DAY (high) stats ===
         day_same_date = [(yr, t) for (yr, t, _tn, _pr) in same_date_full]
@@ -1200,6 +1652,8 @@ def run(input):
         result = {
             "ok": True,
             "error": "",
+            "initial_failure": False,
+            "skip_generation": False,
             "mode": mode,
             "units": units,
             "loc": loc,
@@ -1244,15 +1698,18 @@ def run(input):
 
     except Exception:
         try:
-            offset = input.get("utc_offset_seconds") if isinstance(input, dict) else 0
+            error_input = input if isinstance(input, dict) else {}
+            if isinstance(error_input.get("IDX_0"), dict):
+                error_input = error_input["IDX_0"]
+            offset = error_input.get("utc_offset_seconds", 0)
             if not isinstance(offset, (int, float)):
                 offset = 0
             tz = datetime.timezone(datetime.timedelta(seconds=offset))
             updated_at = datetime.datetime.now(datetime.timezone.utc).astimezone(tz).strftime("%H:%M")
         except Exception:
             updated_at = datetime.datetime.utcnow().strftime("%H:%M")
-        return {"ok": False, "error": "Something went wrong fetching the weather",
-                "updated_at": updated_at}
+        return _failure(
+            "Something went wrong fetching the weather", updated_at, skip=True)
 
 
 def _better_years_sub(better_years_desc, date_label, comparative):
