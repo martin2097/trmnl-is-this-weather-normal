@@ -64,5 +64,5 @@ custom_fields:
   - Fahrenheit (inches): fahrenheit
   default: celsius
 name: Is this weather normal?
-description: ''
+description: See current weather in context
 refresh_interval: 120
