@@ -1,8 +1,18 @@
-{% if ok == false %}
+{% if skip_generation %}
   <div class="layout layout--col">
     {% render "skipped_state", err: error %}
   </div>
   {% render "titlebar", icon: icon_svg, title: plugin_title, inst: skip_inst %}
+  {% elsif initial_failure %}
+  <div class="layout layout--col">
+    {% render "initial_failure_state" %}
+  </div>
+  {% render "titlebar", icon: icon_svg, title: plugin_title, inst: updated_at %}
+  {% elsif ok == false %}
+  <div class="layout layout--col">
+    {% render "error_state", err: error %}
+  </div>
+  {% render "titlebar", icon: icon_svg, title: plugin_title, inst: updated_at %}
   {% else %}
   <div class="layout layout--col gap--distribute lg:gap--small lg:portrait:gap--distribute stretch-y mx--1">
     <div class="flex flex--col flex--left gap--none no-shrink w--full">
@@ -27,7 +37,7 @@
           </span>
           <div class="divider my--1 w--10"></div>
           <span class="text text--base">
-            Low 
+            Low
             <span class="value value--xxsmall lg:value--xsmall font--bold">
               {{ lo }}
                °
@@ -77,7 +87,7 @@
     <div class="hidden lg:portrait:flex flex--col flex--left">
       <span class="description description--small">
         {{ date_label | upcase }}
-             HIGHS DISTRIBUTION · Since 
+             HIGHS DISTRIBUTION · Since
         {{ since_year }}
       </span>
       <div class="flex">
@@ -97,7 +107,7 @@
           </span>
           <div class="divider my--1 w--10"></div>
           <span class="text text--base">
-            Low 
+            Low
             <span class="value value--xsmall font--bold">
               {{ lo }}
                °
