@@ -6,7 +6,7 @@ static_data: ''
 polling_verb: get
 framework_version: 3.1.1
 serverless_language: python
-polling_url: 'https://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | default: latitude | split: '','' | first }}&longitude={{ lat_lon | default: longitude | split: '','' | last }}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&hourly=temperature_2m&past_hours=24&forecast_hours=1&current=temperature_2m&past_days=31&forecast_days=1&timezone=auto'
+polling_url: "{% assign climate_last_year = \"now\" | date: \"%Y\" | minus: 1 %}\r\nhttps://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | default: latitude | split: ',' | first }}&longitude={{ lat_lon | default: longitude | split: ',' | last }}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&hourly=temperature_2m&past_hours=24&forecast_hours=1&current=temperature_2m&forecast_days=1&timezone=auto\r\nhttps://is-this-weather-normal-api.slowtech.workers.dev/v1/recent?latitude={{ lat_lon | default: latitude | split: ',' | first }}&longitude={{ lat_lon | default: longitude | split: ',' | last }}\r\n{% for climate_year in (1940..climate_last_year) %}\r\n{% assign climate_offset = climate_year | minus: 1940 %}\r\n{% assign climate_remainder = climate_offset | modulo: 30 %}\r\n{% if climate_remainder == 0 %}\r\n{% assign climate_part = climate_offset | divided_by: 30 %}\r\nhttps://is-this-weather-normal-api.slowtech.workers.dev/v1/climate/{{ climate_part }}?latitude={{ lat_lon | default: latitude | split: ',' | first }}&longitude={{ lat_lon | default: longitude | split: ',' | last }}\r\n{% endif %}\r\n{% endfor %}"
 polling_headers: ''
 polling_body: ''
 id: 377387

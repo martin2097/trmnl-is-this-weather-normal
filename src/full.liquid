@@ -1,8 +1,18 @@
-{% if ok == false %}
+{% if skip_generation %}
   <div class="layout layout--col">
     {% render "skipped_state", err: error %}
   </div>
   {% render "titlebar", icon: icon_svg, title: plugin_title, inst: skip_inst %}
+  {% elsif initial_failure %}
+  <div class="layout layout--col">
+    {% render "initial_failure_state" %}
+  </div>
+  {% render "titlebar", icon: icon_svg, title: plugin_title, inst: updated_at %}
+  {% elsif ok == false %}
+  <div class="layout layout--col">
+    {% render "error_state", err: error %}
+  </div>
+  {% render "titlebar", icon: icon_svg, title: plugin_title, inst: updated_at %}
   {% else %}
   <div class="layout layout--col gap--small lg:gap--large stretch-y my--4 mx--6">
     <div class="flex flex--col flex--left gap--none no-shrink w--full">
@@ -27,7 +37,7 @@
           </span>
           <div class="divider my--1 lg:my--4 w--10"></div>
           <span class="text text--base lg:text--large">
-            Low 
+            Low
             <span class="value value--xsmall lg:value--small font--bold">
               {{ lo }}
                °
@@ -118,11 +128,11 @@
       </div>
       <div class="hidden divider lg:portrait:visible stretch-x no-shrink"></div>
       <div class="col--span-5 portrait:col--span-1 flex flex--col stretch-y text--left">
-        <!--        chart container: change flex--left → flex--center / flex--right to move the label+chart block; add p--*/pl--* to pad        -->
+        <!-- chart container: change flex--left → flex--center / flex--right to move the label+chart block; add p--*/pl--* to pad -->
         <div class="flex flex--col flex--left stretch-x gap--none lg:gap--xsmall pl--6 lg:pl--16 lg:portrait:px--36">
           <span class="label label--small">
             {{ date_label | upcase }}
-             HIGHS DISTRIBUTION · Since 
+             HIGHS DISTRIBUTION · Since
             {{ since_year }}
           </span>
           <div class="lg:mt--4 w--full h--auto">
