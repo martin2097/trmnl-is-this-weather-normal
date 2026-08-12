@@ -50,12 +50,6 @@ custom_fields:
   field_type: lat_lon
   name: Location
   description: Search for a city, address, or postal code, or enter comma-separated latitude and longitude.
-- keyname: location_label
-  field_type: string
-  name: Display name
-  description: Optional location name shown on the screen, e.g. your town
-  placeholder: Prague
-  optional: true
 - keyname: units
   field_type: select
   name: Units
@@ -63,6 +57,12 @@ custom_fields:
   - Celsius (mm): celsius
   - Fahrenheit (inches): fahrenheit
   default: celsius
+- keyname: location_label
+  field_type: string
+  name: Display name
+  description: Optional location name shown on the screen, e.g. your town
+  placeholder: Prague
+  optional: true
 name: Is this weather normal?
 description: See current weather in context
 refresh_interval: 120
