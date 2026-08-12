@@ -42,7 +42,7 @@ custom_fields:
     Compares today against this same date across 85+ years of history for your exact location, using Open-Meteo's weather archive.
     <br/><br/>
 
-    Search for a city, address, or postal code and it does the rest.
+    Search for a city, address, or postal code, pick your units and it does the rest.
   github_url: https://github.com/martin2097
   learn_more_url: https://www.rapavy.cz/
   email_address: rapavy.mato@gmail.com
