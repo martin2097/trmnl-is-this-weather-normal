@@ -1303,7 +1303,7 @@ def run(input):
         obs_word_high = "hit" if mode == "observed" else "should reach"
         obs_word_low_should = "should stay" if mode == "forecast" else "stayed"
 
-        forecast_prefix = "Expected " if mode == "forecast" else ""
+        forecast_prefix = "Est. " if mode == "forecast" else ""
 
         rain_unit_word_hdr = "in" if units == "F" else "mm"
         r7_out = _fmt_precip(r7_total, units)
@@ -1326,7 +1326,7 @@ def run(input):
 
         # Tier 2: rain week record/top-3 (NEW v3.1)
         elif week_record_top3_total:
-            week_prefix = "Expected " if week_record_top3_decisive else ""
+            week_prefix = "Est. " if week_record_top3_decisive else ""
             if rain7_hist["is_record"]:
                 rain_hdr = "wettest week on record"
                 verdict = "wet"
@@ -1402,7 +1402,7 @@ def run(input):
 
         # Tier 6: rain week-since OR single-day all-time date record (REWORKED v3.1)
         elif week_since_total:
-            week_prefix = "Expected " if week_since_decisive else ""
+            week_prefix = "Est. " if week_since_decisive else ""
             headline = week_prefix + "wettest week since %d" % rain7_hist["since_year"]
             headline = headline[0].upper() + headline[1:]
             verdict = "wet"
